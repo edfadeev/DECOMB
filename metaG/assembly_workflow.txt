@@ -1,0 +1,34 @@
+
+#Set up the path to the working directory
+WORKDIR=/proj/DECOMB/analysis/process_metaG/
+cd $WORKDIR
+
+#extract the seqeunces from the bam files
+mkdir $WORKDIR/fastq
+sbatch ../DECOMB/metaG/slurm_jobs/extract_fastq_from_bam.sh
+
+# Simplify the fastq filenames for array jobs
+cd $WORKDIR/fastq/
+mv CDT3KANXX_2#105352_ACATCCGACTGCGGAT.bam.fastq CDT3KANXX_105352.fastq
+mv CDT3KANXX_2#105353_CCGGCTCGGCGGCTTG.bam.fastq CDT3KANXX_105353.fastq
+mv CDT3KANXX_2#105354_GATAATCGGAGTTGAT.bam.fastq CDT3KANXX_105354.fastq
+
+#run quality control
+mkdir $WORKDIR/QC
+sbatch -a 105352-105354 ../DECOMB/metaG/slurm_jobs/fastqc.sh
+
+#quality trim and removal of adapters
+mkdir $WORKDIR/TRIM
+sbatch -a 105352-105354 ../DECOMB/metaG/slurm_jobs/trim_fastp.sh
+
+#extract 16S data
+mkdir $WORKDIR/16S_rRNA
+
+#downaload silva reference db
+wget https://www.arb-silva.de/fileadmin/silva_databases/release_138_1/Exports/SILVA_138.1_SSURef_NR99_tax_silva.fasta.gz -o 16S_rRNA/SILVA_138.1_SSURef_NR99_tax_silva.fasta.gz
+
+sbatch -a 105352-105354 ../DECOMB/metaG/slurm_jobs/extract_rRNA.sh
+
+#kraken2
+mkdir $WORKDIR/kraken2
+sbatch ../DECOMB/metaG/slurm_jobs/build_krakendb.sh
