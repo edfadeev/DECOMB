@@ -21,6 +21,26 @@ sbatch -a 105352-105354 ../DECOMB/metaG/slurm_jobs/fastqc.sh
 mkdir $WORKDIR/TRIM
 sbatch -a 105352-105354 ../DECOMB/metaG/slurm_jobs/trim_fastp.sh
 
+#kraken2
+mkdir $WORKDIR/kraken2
+mkdir $WORKDIR/kraken2/krakendb
+
+#download database from https://benlangmead.github.io/aws-indexes/k2
+wget -c https://genome-idx.s3.amazonaws.com/kraken/k2_standard_20201202.tar.gz -o $WORKDIR/kraken2/krakendb/
+
+sbatch -a 105352-105354 ../DECOMB/metaG/slurm_jobs/kraken2.sh
+
+#visualize kraken output in krona
+sbatch -a 105352-105354 ../DECOMB/metaG/slurm_jobs/kraken2krona.sh
+
+
+
+sbatch -a 105352-105354 ../DECOMB/metaG/slurm_jobs/kraken2.sh
+
+
+
+
+
 #extract 16S data
 mkdir $WORKDIR/16S_rRNA
 
@@ -28,7 +48,3 @@ mkdir $WORKDIR/16S_rRNA
 wget https://www.arb-silva.de/fileadmin/silva_databases/release_138_1/Exports/SILVA_138.1_SSURef_NR99_tax_silva.fasta.gz -o 16S_rRNA/SILVA_138.1_SSURef_NR99_tax_silva.fasta.gz
 
 sbatch -a 105352-105354 ../DECOMB/metaG/slurm_jobs/extract_rRNA.sh
-
-#kraken2
-mkdir $WORKDIR/kraken2
-sbatch ../DECOMB/metaG/slurm_jobs/build_krakendb.sh
