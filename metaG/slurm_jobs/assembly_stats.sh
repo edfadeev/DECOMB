@@ -18,7 +18,8 @@ cd $WORKDIR
 
 #run QUAST
 metaquast.py ./assembly/CDT3KANXX_${SLURM_ARRAY_TASK_ID}/contigs.fasta \
---threads 8 --circos --glimmer --rna-finding --test-no-ref \
+--threads 8 --circos --glimmer --rna-finding \
+/mirror/silva/current/Exports/SILVA_138.1_SSURef_NR99_tax_silva.fasta.gz
 -1 ./assembly/CDT3KANXX_${SLURM_ARRAY_TASK_ID}/corrected/CDT3KANXX_${SLURM_ARRAY_TASK_ID}_QC_R1.fastq.00.0_0.cor.fastq.gz \
 -2 ./assembly/CDT3KANXX_${SLURM_ARRAY_TASK_ID}/corrected/CDT3KANXX_${SLURM_ARRAY_TASK_ID}_QC_R2.fastq.00.0_0.cor.fastq.gz \
 -o ./quast/CDT3KANXX_${SLURM_ARRAY_TASK_ID}
