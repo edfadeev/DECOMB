@@ -45,12 +45,13 @@ mv ./quast/silva_db.* ./quast/silva_db/
 
 module unload ncbiblastplus/2.10.0
 
-
-
-
-
-
+#run quast
 sbatch -a 105352-105354 ../DECOMB/metaG/slurm_jobs/assembly_stats.sh
+
+
+
+
+
 
 
 
