@@ -23,19 +23,18 @@ sbatch -a 105352-105354 ../DECOMB/metaG/slurm_jobs/trim_fastp.sh
 
 #kraken2
 mkdir $WORKDIR/kraken2
-mkdir $WORKDIR/kraken2/krakendb
-
-#download database from https://benlangmead.github.io/aws-indexes/k2
-wget -c https://genome-idx.s3.amazonaws.com/kraken/k2_standard_20201202.tar.gz -o $WORKDIR/kraken2/krakendb/
 
 sbatch -a 105352-105354 ../DECOMB/metaG/slurm_jobs/kraken2.sh
 
-#visualize kraken output in krona
-sbatch -a 105352-105354 ../DECOMB/metaG/slurm_jobs/kraken2krona.sh
+#assemble the metagenomes
+mkdir $WORKDIR/assembly
 
+sbatch -a 105352-105354 ../DECOMB/metaG/slurm_jobs/assembly_spades.sh
 
+#assembly statistics
+mkdir $WORKDIR/quast
 
-sbatch -a 105352-105354 ../DECOMB/metaG/slurm_jobs/kraken2.sh
+sbatch -a 105352-105354 ../DECOMB/metaG/slurm_jobs/assembly_stats.sh
 
 
 
