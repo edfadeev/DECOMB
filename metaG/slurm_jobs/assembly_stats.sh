@@ -8,18 +8,20 @@
 #SBATCH --error=/proj/DECOMB/analysis/process_metaG/Log/%x-%j.err
 
 #load module
-module unload python3
-module load quast/5.0.2
+module load python3/3.7.0
 module load circos/0.69.9
 
 #Set up the path to the working directory
 WORKDIR=/proj/DECOMB/analysis/process_metaG/
 cd $WORKDIR
 
+#define kraken tools directory
+KRAK_TOOLS_DIR=/proj/DECOMB/source/KrakenTools
+
 #run QUAST
 metaquast.py ./assembly/CDT3KANXX_${SLURM_ARRAY_TASK_ID}/contigs.fasta \
 --threads 8 --circos --glimmer --rna-finding \
-/mirror/silva/current/Exports/SILVA_138.1_SSURef_NR99_tax_silva.fasta.gz
+--blast-db ./quast/silva_db/silva_db
 -1 ./assembly/CDT3KANXX_${SLURM_ARRAY_TASK_ID}/corrected/CDT3KANXX_${SLURM_ARRAY_TASK_ID}_QC_R1.fastq.00.0_0.cor.fastq.gz \
 -2 ./assembly/CDT3KANXX_${SLURM_ARRAY_TASK_ID}/corrected/CDT3KANXX_${SLURM_ARRAY_TASK_ID}_QC_R2.fastq.00.0_0.cor.fastq.gz \
 -o ./quast/CDT3KANXX_${SLURM_ARRAY_TASK_ID}

@@ -34,6 +34,22 @@ sbatch -a 105352-105354 ../DECOMB/metaG/slurm_jobs/assembly_spades.sh
 #assembly statistics
 mkdir $WORKDIR/quast
 
+#generate silva blast db using the mirrorred silva_databases
+module load ncbiblastplus/2.10.0
+cp /mirror/silva/current/Exports/SILVA_138.1_SSURef_NR99_tax_silva.fasta.gz $WORKDIR/quast
+gzip -d ./quast/SILVA_138.1_SSURef_NR99_tax_silva.fasta.gz
+
+makeblastdb -in ./quast/SILVA_138.1_SSURef_NR99_tax_silva.fasta -out ./quast/silva_db/ -dbtype nucl
+
+mv ./quast/silva_db.* ./quast/silva_db/
+
+module unload ncbiblastplus/2.10.0
+
+
+
+
+
+
 sbatch -a 105352-105354 ../DECOMB/metaG/slurm_jobs/assembly_stats.sh
 
 
