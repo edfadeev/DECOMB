@@ -1,0 +1,7 @@
+#install MetaProteomeAnalyzer
+# http://www.mpa.ovgu.de/
+
+module load miniconda
+
+#install as conda environment
+conda create -n mpa -c bioconda mpa-server
