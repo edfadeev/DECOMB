@@ -9,7 +9,6 @@
 
 #load module
 module load anvio/7
-module load samtools/1.11
 
 #Set up the path to the working directory
 WORKDIR=/proj/DECOMB/analysis/process_metaG/
@@ -17,27 +16,27 @@ cd $WORKDIR
 
 #reformat headers
 anvi-script-reformat-fasta ${WORKDIR}/assembly/CDT3KANXX_${SLURM_ARRAY_TASK_ID}/scaffolds.fasta \
--o $WORK_DIR/anvio/CDT3KANXX_${SLURM_ARRAY_TASK_ID}_scaffolds-fixed.fasta \
+-o $WORKDIR/anvio/CDT3KANXX_${SLURM_ARRAY_TASK_ID}_scaffolds-fixed.fasta \
 -l 1000 --simplify-names
 
 #generate db
-anvi-gen-contigs-database -f $WORK_DIR/anvio/CDT3KANXX_${SLURM_ARRAY_TASK_ID}_scaffolds-fixed.fasta \
--o $WORK_DIR/anvio/CDT3KANXX_${SLURM_ARRAY_TASK_ID}.db --project-name CDT3KANXX_${SLURM_ARRAY_TASK_ID}
+anvi-gen-contigs-database -f $WORKDIR/anvio/CDT3KANXX_${SLURM_ARRAY_TASK_ID}_scaffolds-fixed.fasta \
+-o $WORKDIR/anvio/CDT3KANXX_${SLURM_ARRAY_TASK_ID}.db --project-name CDT3KANXX_${SLURM_ARRAY_TASK_ID}
 
 #annotate using HMMs
-anvi-run-hmms -c $WORK_DIR/anvio/CDT3KANXX_${SLURM_ARRAY_TASK_ID}.db --num-threads 12
+anvi-run-hmms -c $WORKDIR/anvio/CDT3KANXX_${SLURM_ARRAY_TASK_ID}.db --num-threads 12
 
 #annotate COGs
-anvi-run-ncbi-cogs -c $WORK_DIR/anvio/CDT3KANXX_${SLURM_ARRAY_TASK_ID}.db --num-threads 12
+anvi-run-ncbi-cogs -c $WORKDIR/anvio/CDT3KANXX_${SLURM_ARRAY_TASK_ID}.db --num-threads 12
 
 #Profiling BAM files
 #sort BAM files
-anvi-init-bam --num-threads 12 $WORK_DIR/mapping/$WORK_DIR/mapping/CDT3KANXX_${SLURM_ARRAY_TASK_ID}/scaffolds_mapped-RAW.bam \
--o $WORK_DIR/mapping/$WORK_DIR/mapping/CDT3KANXX_${SLURM_ARRAY_TASK_ID}/scaffolds_mapped.bam
+anvi-init-bam --num-threads 12 $WORKDIR/mapping/CDT3KANXX_${SLURM_ARRAY_TASK_ID}/scaffolds_mapped-RAW.bam \
+-o $WORKDIR/mapping/CDT3KANXX_${SLURM_ARRAY_TASK_ID}/scaffolds_mapped.bam
 
 #generate anvio profile
-anvi-profile -i $WORK_DIR/mapping/$WORK_DIR/mapping/CDT3KANXX_${SLURM_ARRAY_TASK_ID}/scaffolds_mapped.bam \
--c $WORK_DIR/anvio/CDT3KANXX_${SLURM_ARRAY_TASK_ID}.db \
+anvi-profile -i $WORK_DIR/mapping/CDT3KANXX_${SLURM_ARRAY_TASK_ID}/scaffolds_mapped.bam \
+-c $WORKDIR/anvio/CDT3KANXX_${SLURM_ARRAY_TASK_ID}.db \
 --num-threads 12 \
 --sample-name ${SLURM_ARRAY_TASK_ID} \
---output-dir $WORK_DIR/anvio/CDT3KANXX_${SLURM_ARRAY_TASK_ID} \
+--output-dir $WORKDIR/anvio/CDT3KANXX_${SLURM_ARRAY_TASK_ID} 
