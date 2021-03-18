@@ -54,16 +54,9 @@ mkdir mapping
 sbatch -a 105352-105354 ../DECOMB/metaG/slurm_jobs/map_reads_bbmap.sh
 
 
+#import the metagenomes into Anvio
 
+#activate anvio environment
+conda activate /apps/anvio/7
 
-
-
-
-
-#extract 16S data
-mkdir $WORKDIR/16S_rRNA
-
-#downaload silva reference db
-wget https://www.arb-silva.de/fileadmin/silva_databases/release_138_1/Exports/SILVA_138.1_SSURef_NR99_tax_silva.fasta.gz -o 16S_rRNA/SILVA_138.1_SSURef_NR99_tax_silva.fasta.gz
-
-sbatch -a 105352-105354 ../DECOMB/metaG/slurm_jobs/extract_rRNA.sh
+sbatch -a 105352-105354 ../DECOMB/metaG/slurm_jobs/anvio-import-metagenome.sh
