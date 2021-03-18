@@ -9,6 +9,7 @@
 
 #load module
 module load bbmap/37.61
+module load samtools/1.11
 
 #Set up the path to the working directory
 WORKDIR=/proj/DECOMB/analysis/process_metaG/
@@ -24,3 +25,8 @@ covstats=$WORKDIR/mapping/CDT3KANXX_${SLURM_ARRAY_TASK_ID}/scaffolds_mapped.covs
 rpkm=$WORKDIR/mapping/CDT3KANXX_${SLURM_ARRAY_TASK_ID}/scaffolds_mapped.rpkm \
 nodisk=t \
 Xmx=20G
+
+
+#change SAM to BAM mapping files
+samtools view -bS --threads 12 -o $WORKDIR/mapping/CDT3KANXX_${SLURM_ARRAY_TASK_ID}/scaffolds_mapped-RAW.bam \
+$WORKDIR/mapping/CDT3KANXX_${SLURM_ARRAY_TASK_ID}/scaffolds_mapped.sam
