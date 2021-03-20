@@ -18,7 +18,7 @@ cd $WORKDIR
 #run the program
 bbmap.sh in1=$WORKDIR/TRIM/CDT3KANXX_${SLURM_ARRAY_TASK_ID}_QC_R1.fastq.gz \
 in2=$WORKDIR/TRIM/CDT3KANXX_${SLURM_ARRAY_TASK_ID}_QC_R2.fastq.gz \
-ref=$WORKDIR/assembly/CDT3KANXX_${SLURM_ARRAY_TASK_ID}/scaffolds.fasta \
+ref=$WORKDIR/anvio/CDT3KANXX_${SLURM_ARRAY_TASK_ID}_scaffolds-fixed.fasta \
 out=$WORKDIR/mapping/CDT3KANXX_${SLURM_ARRAY_TASK_ID}/scaffolds_mapped.sam \
 statsfile=$WORKDIR/mapping/CDT3KANXX_${SLURM_ARRAY_TASK_ID}/scaffolds_mapped.stats \
 covstats=$WORKDIR/mapping/CDT3KANXX_${SLURM_ARRAY_TASK_ID}/scaffolds_mapped.covstats \
