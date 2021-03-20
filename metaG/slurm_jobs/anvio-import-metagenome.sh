@@ -27,7 +27,8 @@ anvi-gen-contigs-database -f $WORKDIR/anvio/CDT3KANXX_${SLURM_ARRAY_TASK_ID}_sca
 anvi-run-hmms -c $WORKDIR/anvio/CDT3KANXX_${SLURM_ARRAY_TASK_ID}.db --num-threads 12
 
 #annotate COGs
-anvi-run-ncbi-cogs -c $WORKDIR/anvio/CDT3KANXX_${SLURM_ARRAY_TASK_ID}.db --num-threads 12
+anvi-run-ncbi-cogs -c $WORKDIR/anvio/CDT3KANXX_${SLURM_ARRAY_TASK_ID}.db \
+--num-threads 12 --cog-data-dir /proj/DECOMB/source/anvio-COG
 
 #Profiling BAM files
 #sort BAM files
@@ -35,8 +36,8 @@ anvi-init-bam --num-threads 12 $WORKDIR/mapping/CDT3KANXX_${SLURM_ARRAY_TASK_ID}
 -o $WORKDIR/mapping/CDT3KANXX_${SLURM_ARRAY_TASK_ID}/scaffolds_mapped.bam
 
 #generate anvio profile
-anvi-profile -i $WORK_DIR/mapping/CDT3KANXX_${SLURM_ARRAY_TASK_ID}/scaffolds_mapped.bam \
+anvi-profile -i $WORKDIR/mapping/CDT3KANXX_${SLURM_ARRAY_TASK_ID}/scaffolds_mapped.bam \
 -c $WORKDIR/anvio/CDT3KANXX_${SLURM_ARRAY_TASK_ID}.db \
 --num-threads 12 \
---sample-name ${SLURM_ARRAY_TASK_ID} \
---output-dir $WORKDIR/anvio/CDT3KANXX_${SLURM_ARRAY_TASK_ID} 
+--sample-name CDT3KANXX_${SLURM_ARRAY_TASK_ID} \
+--output-dir $WORKDIR/anvio/CDT3KANXX_${SLURM_ARRAY_TASK_ID}
