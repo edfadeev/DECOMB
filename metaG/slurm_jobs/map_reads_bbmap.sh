@@ -15,10 +15,15 @@ module load samtools/1.11
 WORKDIR=/proj/DECOMB/analysis/process_metaG/
 cd $WORKDIR
 
+#reformat headers
+anvi-script-reformat-fasta ${WORKDIR}/assembly/CDT3KANXX_${SLURM_ARRAY_TASK_ID}/scaffolds.fasta \
+-o $WORKDIR/mapping/CDT3KANXX_${SLURM_ARRAY_TASK_ID}_scaffolds-fixed.fasta \
+-l 1000 --simplify-names
+
 #run the program
 bbmap.sh in1=$WORKDIR/TRIM/CDT3KANXX_${SLURM_ARRAY_TASK_ID}_QC_R1.fastq.gz \
 in2=$WORKDIR/TRIM/CDT3KANXX_${SLURM_ARRAY_TASK_ID}_QC_R2.fastq.gz \
-ref=$WORKDIR/anvio/CDT3KANXX_${SLURM_ARRAY_TASK_ID}_scaffolds-fixed.fasta \
+ref=$WORKDIR/mapping/CDT3KANXX_${SLURM_ARRAY_TASK_ID}_scaffolds-fixed.fasta \
 out=$WORKDIR/mapping/CDT3KANXX_${SLURM_ARRAY_TASK_ID}/scaffolds_mapped.sam \
 statsfile=$WORKDIR/mapping/CDT3KANXX_${SLURM_ARRAY_TASK_ID}/scaffolds_mapped.stats \
 covstats=$WORKDIR/mapping/CDT3KANXX_${SLURM_ARRAY_TASK_ID}/scaffolds_mapped.covstats \
@@ -26,7 +31,10 @@ rpkm=$WORKDIR/mapping/CDT3KANXX_${SLURM_ARRAY_TASK_ID}/scaffolds_mapped.rpkm \
 nodisk=t \
 Xmx=20G
 
-
 #change SAM to BAM mapping files
 samtools view -bS --threads 12 -o $WORKDIR/mapping/CDT3KANXX_${SLURM_ARRAY_TASK_ID}/scaffolds_mapped-RAW.bam \
 $WORKDIR/mapping/CDT3KANXX_${SLURM_ARRAY_TASK_ID}/scaffolds_mapped.sam
+
+#sort BAM files
+anvi-init-bam --num-threads 12 $WORKDIR/mapping/CDT3KANXX_${SLURM_ARRAY_TASK_ID}/scaffolds_mapped-RAW.bam \
+-o $WORKDIR/mapping/CDT3KANXX_${SLURM_ARRAY_TASK_ID}/scaffolds_mapped.bam
