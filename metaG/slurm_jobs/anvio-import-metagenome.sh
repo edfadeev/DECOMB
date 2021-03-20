@@ -14,13 +14,8 @@ module load anvio/7
 WORKDIR=/proj/DECOMB/analysis/process_metaG/
 cd $WORKDIR
 
-#reformat headers
-anvi-script-reformat-fasta ${WORKDIR}/assembly/CDT3KANXX_${SLURM_ARRAY_TASK_ID}/scaffolds.fasta \
--o $WORKDIR/anvio/CDT3KANXX_${SLURM_ARRAY_TASK_ID}_scaffolds-fixed.fasta \
--l 1000 --simplify-names
-
 #generate db
-anvi-gen-contigs-database -f $WORKDIR/anvio/CDT3KANXX_${SLURM_ARRAY_TASK_ID}_scaffolds-fixed.fasta \
+anvi-gen-contigs-database -f $WORKDIR/mapping/CDT3KANXX_${SLURM_ARRAY_TASK_ID}_scaffolds-fixed.fasta \
 -o $WORKDIR/anvio/CDT3KANXX_${SLURM_ARRAY_TASK_ID}.db --project-name CDT3KANXX_${SLURM_ARRAY_TASK_ID}
 
 #annotate using HMMs
@@ -29,11 +24,6 @@ anvi-run-hmms -c $WORKDIR/anvio/CDT3KANXX_${SLURM_ARRAY_TASK_ID}.db --num-thread
 #annotate COGs
 anvi-run-ncbi-cogs -c $WORKDIR/anvio/CDT3KANXX_${SLURM_ARRAY_TASK_ID}.db \
 --num-threads 12 --cog-data-dir /proj/DECOMB/source/anvio-COG
-
-#Profiling BAM files
-#sort BAM files
-anvi-init-bam --num-threads 12 $WORKDIR/mapping/CDT3KANXX_${SLURM_ARRAY_TASK_ID}/scaffolds_mapped-RAW.bam \
--o $WORKDIR/mapping/CDT3KANXX_${SLURM_ARRAY_TASK_ID}/scaffolds_mapped.bam
 
 #generate anvio profile
 anvi-profile -i $WORKDIR/mapping/CDT3KANXX_${SLURM_ARRAY_TASK_ID}/scaffolds_mapped.bam \
