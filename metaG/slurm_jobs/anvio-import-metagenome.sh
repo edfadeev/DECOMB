@@ -15,7 +15,7 @@ WORKDIR=/proj/DECOMB/analysis/process_metaG/
 cd $WORKDIR
 
 #generate db
-anvi-gen-contigs-database -f $WORKDIR/mapping/CDT3KANXX_${SLURM_ARRAY_TASK_ID}_scaffolds-fixed.fasta \
+anvi-gen-contigs-database --num-threads 12 -f $WORKDIR/mapping/CDT3KANXX_${SLURM_ARRAY_TASK_ID}/scaffolds-fixed.fasta \
 -o $WORKDIR/anvio/CDT3KANXX_${SLURM_ARRAY_TASK_ID}.db --project-name CDT3KANXX_${SLURM_ARRAY_TASK_ID}
 
 #annotate using HMMs

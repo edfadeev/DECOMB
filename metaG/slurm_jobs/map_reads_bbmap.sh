@@ -15,15 +15,17 @@ module load samtools/1.11
 WORKDIR=/proj/DECOMB/analysis/process_metaG/
 cd $WORKDIR
 
+mkdir $WORKDIR/mapping/CDT3KANXX_${SLURM_ARRAY_TASK_ID}/
+
 #reformat headers
 anvi-script-reformat-fasta ${WORKDIR}/assembly/CDT3KANXX_${SLURM_ARRAY_TASK_ID}/scaffolds.fasta \
--o $WORKDIR/mapping/CDT3KANXX_${SLURM_ARRAY_TASK_ID}_scaffolds-fixed.fasta \
+-o $WORKDIR/mapping/CDT3KANXX_${SLURM_ARRAY_TASK_ID}/scaffolds-fixed.fasta \
 -l 1000 --simplify-names
 
 #run the program
 bbmap.sh in1=$WORKDIR/TRIM/CDT3KANXX_${SLURM_ARRAY_TASK_ID}_QC_R1.fastq.gz \
 in2=$WORKDIR/TRIM/CDT3KANXX_${SLURM_ARRAY_TASK_ID}_QC_R2.fastq.gz \
-ref=$WORKDIR/mapping/CDT3KANXX_${SLURM_ARRAY_TASK_ID}_scaffolds-fixed.fasta \
+ref=$WORKDIR/mapping/CDT3KANXX_${SLURM_ARRAY_TASK_ID}/scaffolds-fixed.fasta \
 out=$WORKDIR/mapping/CDT3KANXX_${SLURM_ARRAY_TASK_ID}/scaffolds_mapped.sam \
 statsfile=$WORKDIR/mapping/CDT3KANXX_${SLURM_ARRAY_TASK_ID}/scaffolds_mapped.stats \
 covstats=$WORKDIR/mapping/CDT3KANXX_${SLURM_ARRAY_TASK_ID}/scaffolds_mapped.covstats \
