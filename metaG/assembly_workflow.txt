@@ -48,11 +48,21 @@ module unload ncbiblastplus/2.10.0
 #run quast
 sbatch -a 105352-105354 ../DECOMB/metaG/slurm_jobs/assembly_stats.sh
 
+
+#activate conda Anvio env.
+conda activate /apps/anvio/7/
+
+
 #rename contigs to comply  with Anvio and map reads on the scaffold
 mkdir mapping
-
 sbatch -a 105352-105354 ../DECOMB/metaG/slurm_jobs/map_reads_bbmap.sh
 
 #import the metagenomes into Anvio and annotate them
-
+mkdir anvio
 sbatch -a 105352-105354 ../DECOMB/metaG/slurm_jobs/anvio-import-metagenome.sh
+
+#assign taxonomy to metagenomes
+sbatch -a 105352-105354 ../DECOMB/metaG/slurm_jobs/anvio-add-taxonomy.sh
+
+#generate merge database of contigs from all 3 metagenomes
+mkdir anvio/merged_metaG
