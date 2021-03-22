@@ -19,6 +19,6 @@ spades.py --meta --tmp-dir $TMPDIR/tmp --threads 20 \
 --pe1-1 $WORKDIR/01_QC/CDT3KANXX_105352_QC_R1.fastq.gz --pe1-2 $WORKDIR/01_QC/CDT3KANXX_105352_QC_R2.fastq.gz \
 --pe2-1 $WORKDIR/01_QC/CDT3KANXX_105353_QC_R1.fastq.gz --pe2-2 $WORKDIR/01_QC/CDT3KANXX_105353_QC_R2.fastq.gz \
 --pe3-1 $WORKDIR/01_QC/CDT3KANXX_105354_QC_R1.fastq.gz --pe3-2 $WORKDIR/01_QC/CDT3KANXX_105354_QC_R2.fastq.gz \
--o $WORKDIR/02_ASSEMBLY/
+-o $WORKDIR/02_ASSEMBLY/SPAdes
 
 mv $TMPDIR/tmp ./assembly/corrected/tmp
