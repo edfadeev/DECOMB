@@ -1,18 +1,18 @@
 #!/bin/bash
 #
-#SBATCH --job-name=mapping-bbmap
+#SBATCH --job-name=mapping-bbmap_megahit
 #SBATCH --cpus-per-task=12
 #SBATCH --mem=20GB
 #SBATCH --mail-user=dr.eduard.fadeev@gmail.com
-#SBATCH --output=/proj/DECOMB/analysis/process_metaG/Log/%x-%j.out
-#SBATCH --error=/proj/DECOMB/analysis/process_metaG/Log/%x-%j.err
+#SBATCH --output=/proj/DECOMB/analysis/metaG_anvio/Log/%x-%j.out
+#SBATCH --error=/proj/DECOMB/analysis/metaG_anvio/Log/%x-%j.err
 
 #load module
 module load bbmap/37.61
 module load samtools/1.11
 
 #Set up the path to the working directory
-WORKDIR=/proj/DECOMB/analysis/process_metaG/
+WORKDIR=/proj/DECOMB/analysis/metaG_anvio
 cd $WORKDIR
 
 mkdir $WORKDIR/mapping/CDT3KANXX_${SLURM_ARRAY_TASK_ID}/

@@ -48,22 +48,21 @@ module unload ncbiblastplus/2.10.0
 #run quast
 sbatch -a 105352-105354 ../DECOMB/metaG/slurm_jobs/assembly_stats.sh
 
-#map reads on assembly
-mkdir mapping
 
+#activate conda Anvio env.
+conda activate /apps/anvio/7/
+
+
+#rename contigs to comply  with Anvio and map reads on the scaffold
+mkdir mapping
 sbatch -a 105352-105354 ../DECOMB/metaG/slurm_jobs/map_reads_bbmap.sh
 
+#import the metagenomes into Anvio and annotate them
+mkdir anvio
+sbatch -a 105352-105354 ../DECOMB/metaG/slurm_jobs/anvio-import-metagenome.sh
 
+#assign taxonomy to metagenomes
+sbatch -a 105352-105354 ../DECOMB/metaG/slurm_jobs/anvio-add-taxonomy.sh
 
-
-
-
-
-
-#extract 16S data
-mkdir $WORKDIR/16S_rRNA
-
-#downaload silva reference db
-wget https://www.arb-silva.de/fileadmin/silva_databases/release_138_1/Exports/SILVA_138.1_SSURef_NR99_tax_silva.fasta.gz -o 16S_rRNA/SILVA_138.1_SSURef_NR99_tax_silva.fasta.gz
-
-sbatch -a 105352-105354 ../DECOMB/metaG/slurm_jobs/extract_rRNA.sh
+#generate merge database of contigs from all 3 metagenomes
+mkdir anvio/merged_metaG
