@@ -20,12 +20,8 @@ sbatch ../DECOMB/metaG/map_reads_bbmap_spades.sh
 sbatch ../DECOMB/metaG/anvio-annotation.sh
 
 
-
-
 #add KEGG annotation to genes
-#split to files below 300MB due to limitation on GhostKOALA website
-split -l 2500000 05_ANVIO/$WORKDIR/05_ANVIO/spades-AA-sequences.fa spades_genes_AAs
-
+sed 's/>/>genecall_/' 05_ANVIO/$WORKDIR/05_ANVIO/spades-AA-sequences.fa > 05_ANVIO/$WORKDIR/05_ANVIO/spades-AA-sequences_GhostKOALA.fa
 
 #manually upload the output to GhostKOALA 
 
