@@ -1,0 +1,51 @@
+#workflow for co-assembly of metagenomes using SPAdes and annotation using Anvio
+
+
+conda activate /apps/anvio/7
+
+#Set up the path to the working directory
+WORKDIR=/proj/DECOMB/analysis/metaG_anvio/
+cd $WORKDIR
+
+#export sequences from bam files, run QC and trim adapters
+sbatch -a 105352-105354 ../DECOMB/metaG/process_raw_sequences.sh
+
+#run co-assembly and produce statistics on it
+sbatch ../DECOMB/metaG/co_assembly_spades.sh
+
+#map reads from each library on the co-assembly
+sbatch ../DECOMB/metaG/map_reads_bbmap_spades.sh
+
+#import to anvio and annotate the metagenome
+sbatch ../DECOMB/metaG/anvio-annotation.sh
+
+
+
+
+#add KEGG annotation to genes
+#split to files below 300MB due to limitation on GhostKOALA website
+split -l 2500000 05_ANVIO/$WORKDIR/05_ANVIO/spades-AA-sequences.fa spades_genes_AAs
+
+
+#manually upload the output to GhostKOALA 
+
+
+#export data for metaP reference
+#export functions of each gene
+anvi-export-functions -c 05_ANVIO/spades.db --annotation-sources COG20_FUNCTION -o 05_ANVIO/spades-functions.txt
+
+#export taxonomy of each gene
+anvi-export-table --table genes_taxonomy -o spades-genes-taxonomy.txt spades.db
+#export taxonomy table
+anvi-export-table --table taxon_names -o spades-tax-names.txt spades.db
+
+#generate reference database for metaP and functions table
+sed -n '2,$p' 05_ANVIO/spades-functions.txt | sort > spades-functions-sorted.txt
+sed -n '2,$p' 05_ANVIO/spades-gene-calls.txt | sort > spades-gene-calls-sorted.txt
+
+#merge all data together
+sed -e 's/ /_/g' 05_ANVIO/spades-functions.txt > 05_ANVIO/spades-functions-corrected.txt
+join -11 -a1 --header 05_ANVIO/spades-gene-calls.txt 05_ANVIO/spades-functions-corrected.txt > 05_ANVIO/spades-genes-fun-merged.txt
+
+#generate AAs fasta file
+awk '{print ">"$2"\n"$10}' 05_ANVIO/spades-genes-fun-merged.txt > 05_ANVIO/spades-AA-ref-db.fasta

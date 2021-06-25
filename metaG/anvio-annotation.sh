@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-#SBATCH --job-name=spades_assembly_genes_output
+#SBATCH --job-name=annotate_assembly
 #SBATCH --cpus-per-task=20
 #SBATCH --mem=20GB
 #SBATCH --mail-user=dr.eduard.fadeev@gmail.com
@@ -21,14 +21,18 @@ anvi-gen-contigs-database --num-threads 20 -f $WORKDIR/03_CONTIGS/spades-contigs
 #annotate using HMMs
 anvi-run-hmms -c $WORKDIR/05_ANVIO/spades.db --num-threads 20
 
-#annotate COGs
+#annotate genes with COGs
 anvi-run-ncbi-cogs -c $WORKDIR/05_ANVIO/spades.db \
 --num-threads 20 --cog-data-dir /proj/DECOMB/source/anvio-COG
 
-anvi-export-functions -c 05_ANVIO/spades.db --annotation-sources COG20_FUNCTION -o 05_ANVIO/spades-functions.txt
+#add annotations from interproscan
+anvi-get-sequences-for-gene-calls -c $WORKDIR/05_ANVIO/spades.db --get-aa-sequences -o $WORKDIR/05_ANVIO/spades-AA-sequences.fa
 
+/mirror/interpro/interproscan-5.51-85.0/interproscan.sh -i $WORKDIR/05_ANVIO/spades-AA-sequences.fa -f tsv --cpu 20 -o $WORKDIR/05_ANVIO/spades-interpro-output.tsv
 
+/proj/DECOMB/source/InterProScanParser/iprs2anvio.sh -i $WORKDIR/05_ANVIO/spades-interpro-output.tsv -o $WORKDIR/05_ANVIO/spades-interpro-output -g -p -r
 
+anvi-import-functions -c $WORKDIR/05_ANVIO/spades.db -i $WORKDIR/05_ANVIO/spades-interpro-output_iprs2anvio.tsv
 
 #add gene taxonomy
 anvi-get-sequences-for-gene-calls -c $WORKDIR/05_ANVIO/spades.db -o $WORKDIR/05_ANVIO/spades_gene_calls.fa
@@ -40,20 +44,3 @@ anvi-import-taxonomy-for-genes -c $WORKDIR/05_ANVIO/spades.db \
 -i $WORKDIR/05_ANVIO/spades_centrifuge_reports.tsv $WORKDIR/05_ANVIO/spades_centrifuge_hits.tsv \
 -p centrifuge
 
-#export taxonomy of each gene
-anvi-export-table --table genes_taxonomy -o spades-genes-taxonomy.txt spades.db
-#export taxonomy table
-anvi-export-table --table taxon_names -o spades-tax-names.txt spades.db
-
-
-
-#generate reference database for metaP and functions table
-sed -n '2,$p' 05_ANVIO/spades-functions.txt | sort > spades-functions-sorted.txt
-sed -n '2,$p' 05_ANVIO/spades-gene-calls.txt | sort > spades-gene-calls-sorted.txt
-
-#merge all data together
-sed -e 's/ /_/g' 05_ANVIO/spades-functions.txt > 05_ANVIO/spades-functions-corrected.txt
-join -11 -a1 --header 05_ANVIO/spades-gene-calls.txt 05_ANVIO/spades-functions-corrected.txt > 05_ANVIO/spades-genes-fun-merged.txt
-
-#generate AAs fasta file
-awk '{print ">"$2"\n"$10}' 05_ANVIO/spades-genes-fun-merged.txt > 05_ANVIO/spades-AA-ref-db.fasta
