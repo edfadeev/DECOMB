@@ -9,7 +9,11 @@ require(limma)
 require(stringr)
 
 #set working directory
+#macOS
 wd <- "/Users/eduardfadeev/Google Drive (dr.eduard.fadeev@gmail.com)/DECOMB/"
+
+#Windows
+wd <- "D:/Postdoc-Vienna/DECOMB/"
 
 #import taxonomy and annotation of each gene in the reference metagenome
 #taxonomy table
@@ -21,6 +25,7 @@ gene_tax_table <- read.csv(paste(wd,"metaG_analysis/metaG_anvio/05_ANVIO/spades_
 #annotation
 gene_fun_table <- read.csv(paste(wd,"metaG_analysis/metaG_anvio/05_ANVIO/spades_merged/spades-genes-fun-merged.txt",sep=""),
                           sep=" ", h= T)
+
 #merge all information together
 genes_meta <- merge(gene_tax_table,tax_table, by ="taxon_id", all.x = TRUE) %>% 
                 merge(gene_fun_table, by ="gene_callers_id", all = TRUE) %>% 
@@ -62,120 +67,72 @@ protein_trans <- protein_filt %>% dplyr::mutate_at(c(prot_sample$Sample.ID), fun
 prot.pca <- vegan::metaMDS(t(protein_trans[74:115]))
 
 
-protein_nmds <- as.data.frame(prot.pca$points) %>% tibble::rownames_to_column() %>% 
+sample_nmds <- as.data.frame(prot.pca$points) %>% tibble::rownames_to_column() %>% 
                    separate(rowname, into = c("ID","Sample","Fraction","Type","Replicate", "Method"), sep ="_", remove = TRUE) %>% 
                     mutate(Type = case_when(Sample %in% c("C1","C2","C3") ~"Control", 
                                             Sample %in% c("J1","J2","J3") ~"Jelly",
                                                       Sample == "T0" ~ "T0"))
 
-ggplot(protein_nmds, aes(x=MDS1,y=MDS2, colour = Type, shape = as.factor(Type), label = Replicate))+
-  geom_point(size = 5)+
-  geom_text(size = 5, nudge_y = -0.2)
+protein_nmds <- as.data.frame(prot.pca$species) %>% tibble::rownames_to_column() %>% 
+  separate(rowname, into = c("ID","Sample","Fraction","Type","Replicate", "Method"), sep ="_", remove = TRUE) %>% 
+  mutate(Type = case_when(Sample %in% c("C1","C2","C3") ~"Control", 
+                          Sample %in% c("J1","J2","J3") ~"Jelly",
+                          Sample == "T0" ~ "T0"))
+
+ggplot()+
+  geom_point(data=protein_nmds, aes(x=MDS1,y=MDS2), size = 1, alpha = 0.3, colour = "gray50")+
+  geom_point(data=sample_nmds, aes(x=MDS1,y=MDS2, colour = Type, shape = as.factor(Type), label = Replicate),
+             size = 5)+
+  geom_text(data=sample_nmds, aes(x=MDS1,y=MDS2, colour = Type, shape = as.factor(Type), label = Replicate),
+            size = 5, nudge_y = -0.2)+
+  theme_bw()
+
+
+#enrichment test
+require(DESeq2)
+
+
+protein_no_na <- protein_filt %>% mutate_if(is.numeric, funs(replace_na(., 0))) %>% 
+  mutate_if(is.numeric,as.integer)
+
+dds <- DESeqDataSetFromMatrix(countData=protein_no_na[,c(4,20:61)], 
+                              colData=prot_sample, 
+                              design=~Type, tidy = TRUE)
+
+prot.DEseq <- DESeq(dds)
+prot.DEseq.res <- results(prot.DEseq)
 
 
 
-# Quantile normalisation : the aim is to give different distributions the
-# same statistical properties
-quantile_normalisation <- function(df){
-  
-  # Find rank of values in each column
-  df_rank <- map_df(df,rank,ties.method="average")
-  # Sort observations in each column from lowest to highest 
-  df_sorted <- map_df(df,sort)
-  # Find row mean on sorted columns
-  df_mean <- rowMeans(df_sorted)
-  
-  # Function for substiting mean values according to rank 
-  index_to_mean <- function(my_index, my_mean){
-    return(my_mean[my_index])
-  }
-  
-  # Replace value in each column with mean according to rank 
-  df_final <- map_df(df_rank,index_to_mean, my_mean=df_mean)
-  
-  return(df_final)
-}
+require("msmsTests")
+
+samples_frac <- prot_sample %>% filter(Type != "T0", Fraction == "metaP") %>% select(c(9:11))
+row.names(samples_frac)<- samples_frac$Sample.ID
+
+protein_frac <- protein_no_na %>% select(c("gene_callers_id", samples_frac$Sample.ID))
+
+prot_MSnSet <- readMSnSet2(protein_frac, ecol = samples_frac$Sample.ID, fnames = 1)
+
+phenoData(prot_MSnSet) <- AnnotatedDataFrame(samples_frac)
+                    
+
+e <- pp.msms.data(prot_MSnSet)
+
+null.f <- "y~1"
+alt.f <- "y~Type"
+div <- apply(exprs(e),2,sum)
+edgeR_res <- msms.edgeR(e, form0= null.f, form1= alt.f, div=div, fnm="Type")
 
 
-dat_norm <- protein_no_na[20:61] %>% quantile_normalisation()
-  
+test<- test.results(edgeR_res, e, gpf = pData(e)$Type, gp1="Control",gp2="Jelly",
+                    alpha = 0.05, minLFC=1, div= div,
+                    method="BH")
 
-
-protein_no_na <- protein_filt %>% mutate_if(is.numeric, funs(replace_na(., 0))) #%>% mutate_if(is.numeric, funs(log(., 2)))
-
-
-prot_mds <- metaMDS(dat_norm)
+res.volcanoplot(test$tres,max.pval=0.1, maxy=2, maxx = 30)
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-peptide_raw <- read.csv(paste(wd,"metaP_analysis/quant-no-groups/DECOMB-consensus-no-groups_PeptideGroups.txt", sep=""),sep="\t", h= T)
-
-
-
-peptide_no_mod <- peptide_raw %>%filter(Modifications == "")
-
-pepData<-readMSnSet2(peptide_no_mod,ecol=17:58,fnames="Annotated.Sequence",sep="\t")
-
-
-sampleNames(pepData) <- pepData %>% sampleNames %>% str_replace(., pattern="Abundance\\.", replacement="") %>% 
-                            str_replace(., pattern="\\.Sample", replacement="")    
-
-pepData<-selectFeatureData(pepData,fcol=c("Checked","Confidence","Annotated.Sequence",
-                                          "Modifications.in.Master.Proteins","Contaminant",
-                                          "Qvality.PEP","Qvality.q.value","Number.of.Protein.Groups",
-                                          "Number.of.Proteins","Number.of.PSMs","Master.Protein.Accessions"))
-
-
-
-plotNA(pepData)
-
-plotDensities(exprs(pepData))
-nrow(pepData)
-
-pepData_log <- log(pepData, base = 2)
-plotDensities(exprs(pepData_log))
-
-pepData_quant <- normalise(pepData_log, "quantiles")
-
-plotDensities(exprs(pepData_quant))
-
-pepData<-selectFeatureData(pepData)
-
-
-
-plotMDS(exprs(pepData_quant),col=as.double(pData(pepData)$condition))
-
-
-
-                
-                
-plotDensities(protein_filt[,c(19:61)])
-
-
-
-
-
-test <- metaMDS(protein_filt[,c(19:61)],distance = "bray", k = 2, plot = TRUE)
-
-
-plot(x, display = c("sites", "species"), choices = c(1, 2),
-     type = "p", shrink = FALSE,  ...)
-
-
-
+results<- data.frame(test$tres, gene_callers_id = as.integer(row.names(test$tres))) %>% 
+            left_join(genes_meta, by = "gene_callers_id") %>% 
+  filter(DEP =="TRUE")
 
