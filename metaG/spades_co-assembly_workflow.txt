@@ -20,28 +20,63 @@ sbatch ../DECOMB/metaG/map_reads_bbmap_spades.sh
 sbatch ../DECOMB/metaG/anvio-annotation.sh
 
 
-#add KEGG annotation to genes
+#add KEGG annotation to genes (according to https://merenlab.org/2018/01/17/importing-ghostkoala-annotations/)
 sed 's/>/>genecall_/' 05_ANVIO/$WORKDIR/05_ANVIO/spades-AA-sequences.fa > 05_ANVIO/$WORKDIR/05_ANVIO/spades-AA-sequences_GhostKOALA.fa
 
 #manually upload the output to GhostKOALA 
+#download the output files user_ko.txt and user.out.top.gz to 05_ANVIO
+
+#download and parse the KEGG database orthologies 
+wget 'https://www.genome.jp/kegg-bin/download_htext?htext=ko00001&format=htext&filedir=' -O ko00001.keg
+
+cd 05_ANVIO
+
+kegfile="ko00001.keg"
+
+while read -r prefix content
+do
+    case "$prefix" in A) col1="$content";; \
+                      B) col2="$content" ;; \
+                      C) col3="$content";; \
+                      D) echo -e "$col1\t$col2\t$col3\t$content";;
+    esac 
+done < <(sed '/^[#!+]/d;s/<[^>]*>//g;s/^./& /' < "$kegfile") > KO_Orthology_ko00001.txt
+
+cd ..
+
+#parse GhostKoala results
+python /proj/DECOMB/source/GhostKoalaParser/KEGG-to-anvio --KeggDB 05_ANVIO/KO_Orthology_ko00001.txt -i 05_ANVIO/user_ko.txt -o 05_ANVIO/KeggAnnotations-AnviImportable.txt
+
+#import annotation to ANVIO
+anvi-import-functions -c 05_ANVIO/spades.db -i 05_ANVIO/KeggAnnotations-AnviImportable.txt
 
 
+################################
 #export data for metaP reference
+################################
 #export functions of each gene
-anvi-export-functions -c 05_ANVIO/spades.db --annotation-sources COG20_FUNCTION -o 05_ANVIO/spades-functions.txt
+anvi-export-functions -c 05_ANVIO/spades.db --annotation-sources COG20_FUNCTION -o 05_ANVIO/spades-COG-functions.txt
+
+anvi-export-functions -c 05_ANVIO/spades.db --annotation-sources KeggGhostKoala -o 05_ANVIO/spades-KEGG-functions.txt
 
 #export taxonomy of each gene
 anvi-export-table --table genes_taxonomy -o spades-genes-taxonomy.txt spades.db
 #export taxonomy table
 anvi-export-table --table taxon_names -o spades-tax-names.txt spades.db
 
-#generate reference database for metaP and functions table
-sed -n '2,$p' 05_ANVIO/spades-functions.txt | sort > spades-functions-sorted.txt
-sed -n '2,$p' 05_ANVIO/spades-gene-calls.txt | sort > spades-gene-calls-sorted.txt
+#remove spaces
+sed -e 's/ /_/g' 05_ANVIO/spades-COG-functions.txt > 05_ANVIO/spades-COG-functions-corrected.txt
+sed -e 's/ /_/g' 05_ANVIO/spades-KEGG-functions.txt > 05_ANVIO/spades-KEGG-functions-corrected.txt
+
+#sort all tables before merging
+sed -n '2,$p' 05_ANVIO/spades-gene-calls.txt | sort -n -k 1 > 05_ANVIO/spades-gene-calls-sorted.txt
+sed -n '2,$p' 05_ANVIO/spades-COG-functions-corrected.txt | sort -n -k 1 > 05_ANVIO/spades-COG-functions-sorted.txt
+sed -n '2,$p' 05_ANVIO/spades-KEGG-functions-corrected.txt | sort -n -k 1 > 05_ANVIO/spades-KEGG-functions-sorted.txt
 
 #merge all data together
-sed -e 's/ /_/g' 05_ANVIO/spades-functions.txt > 05_ANVIO/spades-functions-corrected.txt
-join -11 -a1 --header 05_ANVIO/spades-gene-calls.txt 05_ANVIO/spades-functions-corrected.txt > 05_ANVIO/spades-genes-fun-merged.txt
+join -11 -a1 --header 05_ANVIO/spades-gene-calls-sorted.txt 05_ANVIO/spades-COG-functions-sorted.txt > 05_ANVIO/spades-genes-COG-merged.txt
+
+join -11 -a1 --header 05_ANVIO/spades-genes-COG-merged.txt 05_ANVIO/spades-KEGG-functions-sorted.txt > 05_ANVIO/spades-genes-functions-merged.txt
 
 #generate AAs fasta file
-awk '{print ">"$2"\n"$10}' 05_ANVIO/spades-genes-fun-merged.txt > 05_ANVIO/spades-AA-ref-db.fasta
+awk '{print ">"$1"_"$2"_"$12"_"$16"\n"$10}' 05_ANVIO/spades-genes-functions-merged.txt > 05_ANVIO/spades-AAs-ref-db.fasta
