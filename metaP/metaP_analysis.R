@@ -2,10 +2,7 @@
 
 require(dplyr)
 require(tidyr)
-require(MSqRob)
-require(MSnbase)
 require(tidyverse)
-require(limma)
 require(stringr)
 
 #set working directory
@@ -32,11 +29,12 @@ prot_sample <- read.csv(paste(wd,"metaP_analysis/quant-no-groups/DECOMB-consensu
   mutate(Replicate = case_when(grepl("20200622_TinkaraTinta2",File.Name) == TRUE ~ 2, TRUE ~ 1),
           File.Name =   tools::file_path_sans_ext(gsub("Z:\\\\EFadeev\\\\DECOMB_raw_data\\\\20200622_TinkaraTinta2\\\\|Z:\\\\EFadeev\\\\DECOMB_raw_data\\\\20200615_TinkaraTinta\\\\",
                                                       "", File.Name)),
-          Fraction = case_when(grepl("MP",File.Name) == TRUE ~ "metaP", TRUE ~ "ExoP"),
+          Fraction = case_when(grepl("MP",File.Name) == TRUE ~ "MetaP", TRUE ~ "ExoP"),
            Type = case_when(grepl("C",File.Name) ==TRUE ~"Control", 
                             grepl("J",File.Name) ==TRUE ~"Jelly",
                             grepl("T0",File.Name) ==TRUE ~ "T0"),
-         Sample.ID = paste(File.ID, File.Name, Type, Replicate, sep="_")) # %>% 
+         Bottle = gsub("_.*","",File.Name),
+         Sample.ID = paste(File.ID, File.Name, Type, Replicate, sep="_")) 
   # separate(File.Name, into = c("Sample","Fraction"), sep ="_", remove = FALSE)
 
 #import proteins data
@@ -49,133 +47,154 @@ protein_filt <- protein_raw %>%
   rename_with(~gsub("Abundance\\.|\\.Sample","",.), everything()) %>% 
   rename_at(vars(prot_sample$File.ID), ~ prot_sample$Sample.ID) %>% 
   left_join(genes_meta, by ="gene_callers_id", all = TRUE) %>% 
-  filter(Number.of.PSMs >=2 , Number.of.Unique.Peptides>=1)
+  filter(Number.of.PSMs >=2 , Number.of.Unique.Peptides>=1) %>% 
+  dplyr::mutate_at(c(prot_sample$Sample.ID), funs(replace_na(., 0)))
 
 #sum the two runs together
+protein_rep_sum <- protein_filt %>% 
+       mutate(C1_EH_Control = rowSums(.[grep("C1_EH_Control_[1-2]", names(.))], na.rm = TRUE),
+              C1_EL_Control = rowSums(.[grep("C1_EL_Control_[1-2]", names(.))], na.rm = TRUE),
+              C1_MP_Control = rowSums(.[grep("C1_MP_Control_[1-2]", names(.))], na.rm = TRUE),
+              C2_EH_Control = rowSums(.[grep("C2_EH_Control_[1-2]", names(.))], na.rm = TRUE),
+              C2_EL_Control = rowSums(.[grep("C2_EL_Control_[1-2]", names(.))], na.rm = TRUE),
+              C2_MP_Control = rowSums(.[grep("C2_MP_Control_[1-2]", names(.))], na.rm = TRUE),
+              C3_EH_Control = rowSums(.[grep("C3_EH_Control_[1-2]", names(.))], na.rm = TRUE),
+              C3_EL_Control = rowSums(.[grep("C3_EL_Control_[1-2]", names(.))], na.rm = TRUE),
+              C3_MP_Control = rowSums(.[grep("C3_MP_Control_[1-2]", names(.))], na.rm = TRUE),
+              J1_EH_Jelly = rowSums(.[grep("J1_EH_Jelly_[1-2]", names(.))], na.rm = TRUE),
+              J1_EL_Jelly = rowSums(.[grep("J1_EL_Jelly_[1-2]", names(.))], na.rm = TRUE),
+              J1_MP_Jelly = rowSums(.[grep("J1_MP_Jelly_[1-2]", names(.))], na.rm = TRUE),
+              J2_EH_Jelly = rowSums(.[grep("J2_EH_Jelly_[1-2]", names(.))], na.rm = TRUE),
+              J2_EL_Jelly = rowSums(.[grep("J2_EL_Jelly_[1-2]", names(.))], na.rm = TRUE),
+              J2_MP_Jelly = rowSums(.[grep("J2_MP_Jelly_[1-2]", names(.))], na.rm = TRUE),
+              J3_EH_Jelly = rowSums(.[grep("J3_EH_Jelly_[1-2]", names(.))], na.rm = TRUE),
+              J3_EL_Jelly = rowSums(.[grep("J3_EL_Jelly_[1-2]", names(.))], na.rm = TRUE),
+              J3_MP_Jelly = rowSums(.[grep("J3_MP_Jelly_[1-2]", names(.))], na.rm = TRUE),
+              T0_EH_T0 = rowSums(.[grep("T0_EH_T0_[1-2]", names(.))], na.rm = TRUE),
+              T0_EL_T0 = rowSums(.[grep("T0_EL_200616145603_T0_[1-2]", names(.))], na.rm = TRUE),
+              T0_MP_T0 = rowSums(.[grep("T0_MP_T0_[1-2]", names(.))], na.rm = TRUE))
+              
+sample.names <- prot_sample %>% mutate(Sample.ID = paste(File.Name, Type, sep="_")) %>% 
+  mutate(Sample.ID = gsub("200616145603_","",Sample.ID)) %>% 
+  pull(Sample.ID) %>% unique()
 
 # NAAF transformation
-protein_trans <- protein_filt %>% dplyr::mutate_at(c(prot_sample$Sample.ID), funs(replace_na(., 0))) %>% 
-  dplyr::mutate_at(c(prot_sample$Sample.ID), funs(./Number.of.AAs)) %>% 
-  dplyr::mutate_at(c(prot_sample$Sample.ID), funs(NAAF = ./ sum(.)))
+protein_trans <- protein_rep_sum %>%
+  dplyr::mutate_at(sample.names, funs(./Number.of.AAs)) %>% 
+  dplyr::mutate_at(sample.names, funs(NAAF = ./ sum(.)))
 
 #NMDS
-prot.pca <- vegan::metaMDS(t(protein_trans[74:115]))
+prot.pca <- vegan::metaMDS(t(protein_trans[paste(sample.names,"NAAF",sep="_")]))
 
 
 protein_nmds <- as.data.frame(prot.pca$points) %>% tibble::rownames_to_column() %>% 
-                   separate(rowname, into = c("ID","Sample","Fraction","Type","Replicate", "Method"), sep ="_", remove = TRUE) %>% 
-                    mutate(Type = case_when(Sample %in% c("C1","C2","C3") ~"Control", 
-                                            Sample %in% c("J1","J2","J3") ~"Jelly",
-                                                      Sample == "T0" ~ "T0"))
+                   separate(rowname, into = c("Sample","Fraction","Type"), sep ="_", remove = TRUE)
 
-ggplot(protein_nmds, aes(x=MDS1,y=MDS2, colour = Type, shape = as.factor(Type), label = Replicate))+
+ggplot(protein_nmds, aes(x=MDS1,y=MDS2, colour = Type, shape = as.factor(Fraction), label = Sample))+
   geom_point(size = 5)+
-  geom_text(size = 5, nudge_y = -0.2)
+  geom_text(size = 5, nudge_y = -0.1)+
+  scale_color_manual(values = c("T0"="black","Jelly"="blue","Control"="red"))+
+  theme_bw()
 
 
 
-# Quantile normalisation : the aim is to give different distributions the
-# same statistical properties
-quantile_normalisation <- function(df){
+#sum the two runs together
+protein_frac_sum <- protein_filt %>% 
+  mutate(C1_ExoP_Control = rowSums(.[grep("C1_E.*", names(.))], na.rm = TRUE),
+         C1_MetaP_Control = rowSums(.[grep("C1_MP_Control_[1-2]", names(.))], na.rm = TRUE),
+         C2_ExoP_Control = rowSums(.[grep("C2_E.*", names(.))], na.rm = TRUE),
+         C2_MetaP_Control = rowSums(.[grep("C2_MP_Control_[1-2]", names(.))], na.rm = TRUE),
+         C3_ExoP_Control = rowSums(.[grep("C3_E.*", names(.))], na.rm = TRUE),
+         C3_MetaP_Control = rowSums(.[grep("C3_MP_Control_[1-2]", names(.))], na.rm = TRUE),
+         J1_ExoP_Jelly = rowSums(.[grep("J1_E.*", names(.))], na.rm = TRUE),
+         J1_MetaP_Jelly = rowSums(.[grep("J1_MP_Jelly_[1-2]", names(.))], na.rm = TRUE),
+         J2_ExoP_Jelly = rowSums(.[grep("J2_E.*", names(.))], na.rm = TRUE),
+         J2_MetaP_Jelly = rowSums(.[grep("J2_MP_Jelly_[1-2]", names(.))], na.rm = TRUE),
+         J3_ExoP_Jelly = rowSums(.[grep("J3_E.*", names(.))], na.rm = TRUE),
+         J3_MetaP_Jelly = rowSums(.[grep("J3_MP_Jelly_[1-2]", names(.))], na.rm = TRUE),
+         T0_ExoP_T0 = rowSums(.[grep("T0_E.*", names(.))], na.rm = TRUE),
+         T0_MetaP_T0 = rowSums(.[grep("T0_MP_T0_[1-2]", names(.))], na.rm = TRUE))
+
+sample.names_frac <- prot_sample %>% mutate(Sample.ID = paste(Bottle, Fraction, Type, sep="_")) %>% 
+  pull(Sample.ID) %>% unique()
+
+# NAAF transformation
+protein_frac_trans <- protein_frac_sum %>%
+  dplyr::mutate_at(sample.names_frac, funs(./Number.of.AAs)) %>% 
+  dplyr::mutate_at(sample.names_frac, funs(NAAF = ./ sum(.)))
+
+#NMDS
+prot.pca <- vegan::metaMDS(t(protein_frac_trans[paste(sample.names_frac,"NAAF",sep="_")]))
+
+
+protein_frac_nmds <- as.data.frame(prot.pca$points) %>% tibble::rownames_to_column() %>% 
+  separate(rowname, into = c("Sample","Fraction","Type"), sep ="_", remove = TRUE)
+
+ggplot(protein_frac_nmds, aes(x=MDS1,y=MDS2, colour = Type, shape = Fraction, label = Sample))+
+  geom_point(size = 5)+
+  geom_text(size = 5, nudge_y = -0.04)+
+  scale_color_manual(values = c("T0"="black","Jelly"="blue","Control"="red"))+
+  theme_bw()+
+  theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank(), 
+        axis.line = element_line(colour = "black"),
+        text=element_text(size=14),legend.position = "bottom")
+
+
+
+#explore data
+#summarize proteins by taxa
+protein_by_taxa <- protein_frac_sum %>% 
+                      melt(c("gene_callers_id", "Description","t_genus","t_species"),sample.names_frac) %>% 
+                      filter(value>0) %>% 
+                      spread(variable,value) %>% 
+                       group_by(t_genus,t_species) %>% 
+                        mutate_at(sample.names_frac, funs(ifelse(is.na(.),0,1))) %>% 
+                         summarise_at(sample.names_frac, sum)
   
-  # Find rank of values in each column
-  df_rank <- map_df(df,rank,ties.method="average")
-  # Sort observations in each column from lowest to highest 
-  df_sorted <- map_df(df,sort)
-  # Find row mean on sorted columns
-  df_mean <- rowMeans(df_sorted)
+#summarize proteins observations by function
+protein_by_func<- protein_frac_sum %>% 
+  melt(c("gene_callers_id", "Description","t_genus","t_species"),sample.names_frac) %>% 
+  filter(value>0) %>% 
+  spread(variable,value) %>% 
+  group_by(Description) %>% 
+  mutate_at(sample.names_frac, funs(ifelse(is.na(.),0,1))) %>% 
+  summarise_at(sample.names_frac, sum)
+
+
+#summarize proteins observations by COG
+protein_by_COG<- protein_frac_sum %>% 
+  melt(c("gene_callers_id", "Description","t_genus","t_species"),sample.names_frac) %>% 
+  filter(value>0) %>% 
+  spread(variable,value) %>% 
+  separate(Description, into = c("COG","name"), sep =" ", remove =FALSE) %>% 
+  group_by(COG) %>% 
+  mutate_at(sample.names_frac, funs(ifelse(is.na(.),0,1))) %>% 
+  summarise_at(sample.names_frac, sum)
+
+#summarize proteins observations by taxa and function
+protein_by_taxa_func<- protein_frac_sum %>% 
+  melt(c("gene_callers_id", "Description","t_genus","t_species"),sample.names_frac) %>% 
+  filter(value>0) %>% 
+  spread(variable,value) %>% 
+  group_by(t_genus,Description) %>% 
+  mutate_at(sample.names_frac, funs(ifelse(is.na(.),0,1))) %>% 
+  summarise_at(sample.names_frac, sum)
   
-  # Function for substiting mean values according to rank 
-  index_to_mean <- function(my_index, my_mean){
-    return(my_mean[my_index])
-  }
+
+#venn diagramme of shared proteins
+require(UpSetR)
+
+prot_pres_abs <- protein_frac_sum %>% 
+               mutate_at(sample.names_frac, funs(ifelse(.==0,0,1))) %>% 
+                        select(sample.names_frac)
+
+
+upset(prot_pres_abs, nsets = 14, order.by = "freq")
+
+
   
-  # Replace value in each column with mean according to rank 
-  df_final <- map_df(df_rank,index_to_mean, my_mean=df_mean)
   
-  return(df_final)
-}
-
-
-dat_norm <- protein_no_na[20:61] %>% quantile_normalisation()
   
-
-
-protein_no_na <- protein_filt %>% mutate_if(is.numeric, funs(replace_na(., 0))) #%>% mutate_if(is.numeric, funs(log(., 2)))
-
-
-prot_mds <- metaMDS(dat_norm)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-peptide_raw <- read.csv(paste(wd,"metaP_analysis/quant-no-groups/DECOMB-consensus-no-groups_PeptideGroups.txt", sep=""),sep="\t", h= T)
-
-
-
-peptide_no_mod <- peptide_raw %>%filter(Modifications == "")
-
-pepData<-readMSnSet2(peptide_no_mod,ecol=17:58,fnames="Annotated.Sequence",sep="\t")
-
-
-sampleNames(pepData) <- pepData %>% sampleNames %>% str_replace(., pattern="Abundance\\.", replacement="") %>% 
-                            str_replace(., pattern="\\.Sample", replacement="")    
-
-pepData<-selectFeatureData(pepData,fcol=c("Checked","Confidence","Annotated.Sequence",
-                                          "Modifications.in.Master.Proteins","Contaminant",
-                                          "Qvality.PEP","Qvality.q.value","Number.of.Protein.Groups",
-                                          "Number.of.Proteins","Number.of.PSMs","Master.Protein.Accessions"))
-
-
-
-plotNA(pepData)
-
-plotDensities(exprs(pepData))
-nrow(pepData)
-
-pepData_log <- log(pepData, base = 2)
-plotDensities(exprs(pepData_log))
-
-pepData_quant <- normalise(pepData_log, "quantiles")
-
-plotDensities(exprs(pepData_quant))
-
-pepData<-selectFeatureData(pepData)
-
-
-
-plotMDS(exprs(pepData_quant),col=as.double(pData(pepData)$condition))
-
-
-
-                
-                
-plotDensities(protein_filt[,c(19:61)])
-
-
-
-
-
-test <- metaMDS(protein_filt[,c(19:61)],distance = "bray", k = 2, plot = TRUE)
-
-
-plot(x, display = c("sites", "species"), choices = c(1, 2),
-     type = "p", shrink = FALSE,  ...)
-
-
-
-
+                      
+                        
+                        
