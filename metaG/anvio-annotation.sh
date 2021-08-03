@@ -10,6 +10,9 @@
 #load module
 module load centrifuge/1.0.3-beta
 
+module unload perl
+module load perl/5.28.0 #required for InterProScan
+
 #Set up the path to the working directory
 WORKDIR=/proj/DECOMB/analysis/metaG_anvio/
 cd $WORKDIR
@@ -28,11 +31,29 @@ anvi-run-ncbi-cogs -c $WORKDIR/05_ANVIO/spades.db \
 #add annotations from interproscan
 anvi-get-sequences-for-gene-calls -c $WORKDIR/05_ANVIO/spades.db --get-aa-sequences -o $WORKDIR/05_ANVIO/spades-AA-sequences.fa
 
-/mirror/interpro/interproscan-5.51-85.0/interproscan.sh -i $WORKDIR/05_ANVIO/spades-AA-sequences.fa -f tsv --cpu 20 -o $WORKDIR/05_ANVIO/spades-interpro-output.tsv
+/proj/DECOMB/source/my_interproscan/interproscan-5.52-86.0/interproscan.sh -i $WORKDIR/05_ANVIO/spades-AA-sequences.fa \ 
+-f tsv --cpu 40 --goterms --pathways --applications Hamap,SUPERFAMILY,TIGRFAM,SFLD,Pfam,PANTHER \
+-o $WORKDIR/05_ANVIO/spades-interpro-output.tsv -dp
 
-/proj/DECOMB/source/InterProScanParser/iprs2anvio.sh -i $WORKDIR/05_ANVIO/spades-interpro-output.tsv -o $WORKDIR/05_ANVIO/spades-interpro-output -g -p -r
+cd 05_ANVIO #required for the script
+iprs2anvio.sh --input spades-interpro-output.tsv --output spades -g -p -r -s
 
-anvi-import-functions -c $WORKDIR/05_ANVIO/spades.db -i $WORKDIR/05_ANVIO/spades-interpro-output_iprs2anvio.tsv
+cd .. 
+
+#import GO annotation
+anvi-import-functions -c $WORKDIR/05_ANVIO/spades.db -i $WORKDIR/05_ANVIO/spades_go.tsv
+
+#import InterPro annotation
+anvi-import-functions -c $WORKDIR/05_ANVIO/spades.db -i $WORKDIR/05_ANVIO/spades_ipr.tsv
+
+#import Hamap annotation
+anvi-import-functions -c $WORKDIR/05_ANVIO/spades.db -i $WORKDIR/05_ANVIO/spades_Hamap.tsv
+
+#import Pfam annotation
+anvi-import-functions -c $WORKDIR/05_ANVIO/spades.db -i $WORKDIR/05_ANVIO/spades_Pfam.tsv
+
+#import Pathways annotation
+anvi-import-functions -c $WORKDIR/05_ANVIO/spades.db -i $WORKDIR/05_ANVIO/spades_pathways.tsv
 
 #add gene taxonomy
 anvi-get-sequences-for-gene-calls -c $WORKDIR/05_ANVIO/spades.db -o $WORKDIR/05_ANVIO/spades_gene_calls.fa
