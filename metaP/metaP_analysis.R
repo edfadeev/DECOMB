@@ -2,18 +2,42 @@
 
 require(dplyr)
 require(tidyr)
+require(stringr)
+require(phyloseq)
+require(ggplot2)
+require(vegan)
+require(microbiome)
+require(pheatmap)
+
+
 #require(MSqRob)
 require(pathview)
 require(tidyverse)
 require(limma)
-require(stringr)
-require(phyloseq)
-require(ggplot2)
 require(gplots)
+
+#conduct NSAF transformation
+add_nsaf=function(ps, prot_length){
+  if(ps@otu_table@taxa_are_rows == TRUE){
+    mat <- (otu_table(ps))
+  }else{
+    mat <- t((otu_table(ps)))
+  }
+  prot_len <- as.numeric(tax_table(ps)[,prot_length])
+  mat <- mat/prot_len
+  mat <- mat/rowSums(mat)
+  otu_table(ps) <- mat
+  return(ps)
+}
+
+
 
 #set working directory
 #macOS
 wd <- "/Users/eduardfadeev/Google Drive (dr.eduard.fadeev@gmail.com)/DECOMB/"
+
+#Linux 
+wd <- "~/Data/Postdoc-Vienna/DECOMB/"
 
 #Windows
 wd <- "D:/Postdoc-Vienna/DECOMB/"
@@ -26,9 +50,6 @@ tax_table <- read.csv(paste(wd,"metaG_analysis/metaG_anvio/05_ANVIO/spades_merge
 gene_tax_table <- read.csv(paste(wd,"metaG_analysis/metaG_anvio/05_ANVIO/spades_merged/spades-genes-taxonomy.txt",sep=""),
                            sep="\t", h= T)
 #annotation
-#gene_fun_table <- read.csv(paste(wd,"metaG_analysis/metaG_anvio/05_ANVIO/spades_merged/spades-genes-fun-merged.txt",sep=""),
-#                          sep=" ", h= T)
-
 gene_fun_table <- read.csv(paste(wd,"metaG_analysis/metaG_anvio/05_ANVIO/spades_merged/spades-genes-functions-merged.txt",sep=""),
                            sep=" ", h= F) %>% 
                   select("V1","V2","V3","V4","V10","V12","V13", "V14","V16","V17") 
@@ -76,26 +97,23 @@ protein_filt <- protein_raw %>%
   mutate_if(is.numeric, funs(replace_na(., 0))) %>% 
   mutate_if(is.numeric,as.integer)
 
-
-
-protein_counts <- protein_filt %>% select(c("gene_callers_id", prot_sample$Sample.ID))
-
-counts<- otu_table(data.frame(protein_counts[, prot_sample$Sample.ID], row.names = protein_counts$gene_callers_id), taxa_are_rows = TRUE)
+#merge the dataset into a phyloseq object for convenience 
+protein_counts<- protein_filt %>% select(c("gene_callers_id", prot_sample$Sample.ID))
+protein_counts<- otu_table(data.frame(protein_counts[, prot_sample$Sample.ID], row.names = protein_counts$gene_callers_id), taxa_are_rows = TRUE)
 
 annotation<- tax_table(as.matrix(data.frame(genes_meta, row.names = genes_meta$gene_callers_id)))
 
 sample_meta <- sample_data(data.frame(prot_sample, row.names =prot_sample$Sample.ID))
 
-ps_obj0<- phyloseq(counts, annotation, sample_meta)
+prot_obj0<- phyloseq(counts, annotation, sample_meta)
+prot_obj0<- prune_taxa(taxa_sums(prot_obj0)>0,prot_obj0)
 
-ps_obj0<- prune_taxa(taxa_sums(ps_obj0)>0,ps_obj0)
 
 #merge runs of the analysis
 ps_obj_agg <- merge_samples(ps_obj0, "Group", fun = sum)
 
-#generate metadata
+#generate aggregated metadata
 meta <- sample_data(ps_obj0)
-
 meta <- as(meta, "data.frame") %>% select(Group, Fraction, Type) %>% 
    unique() %>% mutate(Fraction = as.factor(Fraction),
                                                Type = as.factor(Type))
@@ -103,19 +121,149 @@ row.names(meta)<- meta$Group
 
 sample_data(ps_obj_agg)<- sample_data(meta)
 
+###################
+#Plot number of proteins per sample
+###################
+#melt phyloseq object
+ps_obj_agg.long <- psmelt(ps_obj_agg)
+ps_obj_agg.long$Abundance <- ps_obj_agg.long$Abundance*100
 
-#NMDS plot
-ps_obj_nmds <- ordinate(ps_obj_agg, method = "NMDS", distance = "jsd")
-ps_obj_nmds.df <- plot_ordination(ps_obj_agg, ps_obj_nmds, axes = c(1,2,3),justDF = TRUE)
+prot_bar.p <- ggplot(ps_obj_agg.long, aes(x = Sample, y = Abundance)) + 
+  facet_grid(Fraction~., space= "fixed") +
+  geom_col()+
+  ylab("# of proteins \n")+
+  theme_bw()+
+  theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank(),
+        axis.line = element_line(colour = "black"),
+        text=element_text(size=14),legend.position = "bottom", 
+        axis.title.x = element_blank(), axis.text.x = element_text(angle=90))
+
+
+###################
+#Plot proportions of proteins per sample
+###################
+#conduct NSAF transformation
+ps_obj_nsaf<- add_nsaf(ps_obj_agg, "prot_length")
+
+prot_NSAF.long <- psmelt(ps_obj_nsaf)
+
+prot_NSAF.agg<- prot_NSAF.long %>% 
+  group_by(Sample) %>% 
+  summarize(Abundance, "sum")
+
+
+prot_NSAF_bar.p <- ggplot(prot_NSAF.long, aes(x = Sample, y = Abundance)) + 
+  facet_grid(Fraction~., space= "fixed") +
+  geom_col()+
+  ylab("# of proteins \n")+
+  theme_bw()+
+  theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank(),
+        axis.line = element_line(colour = "black"),
+        text=element_text(size=14),legend.position = "bottom", 
+        axis.title.x = element_blank(), axis.text.x = element_text(angle=90))
+
+###################
+#Generate NMDS plot
+###################
+# Do CLR transformation to protein abundances
+ps_clr <- transform(ps_obj_nsaf, "clr")
+
+ps_obj_nmds <- ordinate(ps_clr, method = "NMDS", distance = "euclidean")
+ps_obj_nmds.df <- plot_ordination(ps_clr, ps_obj_nmds, axes = c(1,2,3),justDF = TRUE)
 
 ps_obj_nmds.df$Sample<- row.names(ps_obj_nmds.df)
 
-ggplot(data = ps_obj_nmds.df, aes(x = NMDS1, y = NMDS2, shape = Fraction))+
+
+NMDS_plot<- ggplot(data = ps_obj_nmds.df, aes(x = NMDS1, y = NMDS2, shape = Fraction))+
   geom_point(fill = "black", size = 6,alpha = 0.8) +
   geom_point(aes(colour = Type), size = 4,alpha = 0.8) +
   geom_text(aes(x = NMDS1, y = NMDS2,label = Sample), 
-            nudge_y= -0.005,size=5)+
-  theme_bw()
+            nudge_y= -10,size=5)+
+  theme_bw()+
+  theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank(),
+        axis.line = element_line(colour = "black"),
+        text=element_text(size=14),legend.position = "bottom")
+
+#save the plot
+ggsave(paste0(wd,"/R_figures/NMDS_prot.pdf"), 
+       plot = NMDS_plot,
+       units = "cm",
+       width = 30, height = 30, 
+       #scale = 1,
+       dpi = 300)
+
+
+
+#test significance of clustering
+df <- as(sample_data(ps_clr), "data.frame")
+d <- phyloseq::distance(ps_clr, "euclidean")
+adonis_all <- adonis2(d ~ Fraction + Type  , df)
+adonis_all
+
+#posthoc to check which ponds are different
+groups <- df[["Type"]]
+mod <- betadisper(d, groups)
+permutest(mod)
+
+#dispersion is different between groups
+plot(mod)
+boxplot(mod)
+mod.HSD <- TukeyHSD(mod)
+mod.HSD
+plot(mod.HSD)
+
+###################
+#Identify enriched proteins in MetaP
+###################
+
+prot_abund_log10 <- microbiome::transform(ps_obj_nsaf, "log10")
+ps_log10<- subset_samples(prot_abund_log10, Type != "T0" & Fraction =="metaP")
+ps_clr_sub <- microbiome::abundances(ps_log10)
+
+# Prepare the design matrix which states the groups for each sample
+design <- cbind(intercept = 1, Grp2vs1 = c(0,0,0,1,1,1))
+rownames(design) <- row.names(sample_data(ps_log10))
+design <- as.data.frame(design[colnames(ps_clr_sub), ])
+
+# Fit the limma model
+fit <- lmFit(ps_clr_sub, design, adjust="BH")
+fit <- eBayes(fit)
+
+#explore results
+results <- decideTests(fit[,"Grp2vs1"])
+summary(results)
+
+
+
+# NOTE: results and p-values are given for all groupings in the design matrix
+coef.index <- 2
+
+
+
+# Limma P-values
+pvalues.limma = fit$p.value[, 2]
+
+# Limma effect sizes
+efs.limma <-  fit$coefficients[, "Grp2vs1"]
+
+# QQ plot
+qqt(fit$t[, coef.index], df = fit$df.residual + fit$df.prior); abline(0,1)
+
+# Volcano
+volcanoplot(fit, coef = coef.index, highlight = coef.index)
+
+# Summarise
+knitr::kable(topTable(fit, coef = coef.index, p.value=0.1), digits = 2)
+
+
+###################
+#plot a heatmap
+###################
+#plot heat map of the first 100 enriched proteins
+tab_100 <- topTable(fit, n=100, sort.by = "logFC", coef=coef.index) %>% filter(adj.P.Val<0.1)
+prot_abund_100<- ps_clr_sub[row.names(tab_100),]
+
+pheatmap(prot_abund_100)
 
 
 
@@ -124,22 +272,20 @@ ggplot(data = ps_obj_nmds.df, aes(x = NMDS1, y = NMDS2, shape = Fraction))+
 
 
 
-
-
-
-
-#plot subset
-ps_obj_metaP<- subset_samples(ps_obj_agg, Fraction =="ExoP")
+###################
+#plot a heatmap
+###################
+metaP_agg<- subset_samples(ps_obj_nsaf, Fraction =="metaP")
 
 # Do log10 transformation to protein abundances
-prot_abund_log10 <- microbiome::abundances(microbiome::transform(ps_obj_metaP, "log10"))
+ps_clr_abund <- microbiome::abundances(ps_obj_nsaf)
 
 #select the most abundant proteins
-top_prot<- sort(rowSums(prot_abund_log10), decreasing = T)
-prot_abund_log10_top<- prot_abund_log10[names(top_prot[1:100]),]
+top_prot<- sort(rowSums(ps_clr_abund), decreasing = T)
+ps_clr_abund_top<- ps_clr_abund[names(top_prot[1:50]),]
 
 #plot heatmap
-pheatmap(prot_abund_log10_top)
+pheatmap(ps_clr_abund_top)
 
 
 
@@ -152,21 +298,9 @@ pheatmap(prot_abund_log10_top)
 
 
 
-#conduct NSAF transformation
-add_nsaf=function(ps, prot_length){
-  if(ps@otu_table@taxa_are_rows == TRUE){
-    mat <- (otu_table(ps))
-  }else{
-    mat <- t((otu_table(ps)))
-  }
-  prot_len <- as.numeric(tax_table(ps)[,prot_length])
-  mat <- mat/prot_len
-  mat <- mat/rowSums(mat)
-  otu_table(ps) <- mat
-  return(ps)
-}
 
-ps_obj_nsaf<- add_nsaf(ps_obj_agg, "prot_length")
+
+
 
 #plot heatmap
 pheatmap(otu_table(ps_obj_nsaf)[1:100,])
@@ -193,16 +327,20 @@ sample_data(ps_obj_agg)<- sample_data(meta)
 # Get protein abundances and sample metadata
 prot_abund_log10 <- microbiome::abundances(microbiome::transform(ps_obj_agg, "clr"))
 
+ps_clr_sub<- subset_samples(ps_clr, Type != "T0" & Fraction =="metaP")
+
+ps_clr_sub <- microbiome::abundances(ps_clr_sub)
+
 # Prepare the design matrix which states the groups for each sample
 design <- cbind(intercept = 1, Grp2vs1 = meta[["Type"]])
 rownames(design) <- row.names(meta)
-design <- as.data.frame(design[colnames(prot_abund_log10), ])
+design <- as.data.frame(design[colnames(ps_clr_sub), ])
 
 # NOTE: results and p-values are given for all groupings in the design matrix
 coef.index <- 1
 
 # Fit the limma model
-fit <- lmFit(prot_abund_log10, design, adjust="BH")
+fit <- lmFit(ps_clr_sub, design, adjust="BH")
 fit <- eBayes(fit)
 
 # Limma P-values
@@ -222,10 +360,10 @@ volcanoplot(fit, coef = coef.index, highlight = coef.index)
 
 
 #plot heat map of the first 100 enriched proteins
-tab_100 <- topTable(fit, n=100, sort.by = "logFC", coef=coef.index) %>% filter(adj.P.Val<0.1)
-prot_abund_100<- prot_abund_log10[row.names(tab_100),]
+tab_100 <- topTable(fit, n=Inf, sort.by = "logFC", coef=coef.index) %>% filter(adj.P.Val<0.1)
+prot_abund_100<- ps_clr_sub[row.names(tab_100),]
 
-gplots::heatmap.2(prot_abund_100, col= bluered(10), scale = "none", margins = c(10, 5))
+heatmap.2(prot_abund_100, col= bluered(10), scale = "none", margins = c(10, 5))
 
 
 #map KOs of enriched proteins on KEGG maps
