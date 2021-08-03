@@ -54,6 +54,9 @@ anvi-import-functions -c 05_ANVIO/spades.db -i 05_ANVIO/KeggAnnotations-AnviImpo
 ################################
 #export data for metaP reference
 ################################
+
+sed -n '2,$p' 05_ANVIO/spades-gene-calls.txt | sort -n -k 1 > 05_ANVIO/spades-gene-calls-sorted.txt
+
 #export functions of each gene
 
 DATABASES=("COG20_FUNCTION" "KeggGhostKoala" "Pfam"  "GO" "InterPro" "Hamap")
@@ -75,7 +78,29 @@ anvi-export-table --table genes_taxonomy -o spades-genes-taxonomy.txt spades.db
 anvi-export-table --table taxon_names -o spades-tax-names.txt spades.db
 
 #merge all data together
+("COG20_FUNCTION" "KeggGhostKoala" "Pfam"  "GO" "InterPro" "Hamap")
 
+join -11 -a1 --header 05_ANVIO/spades-gene-calls-sorted.txt 05_ANVIO/spades-COG20_FUNCTION-functions-sorted.txt > 05_ANVIO/spades-COG20_FUNCTION-merged.txt
+
+join -11 -a1 --header 05_ANVIO/spades-COG20_FUNCTION-merged.txt 05_ANVIO/spades-KeggGhostKoala-functions-sorted.txt > 05_ANVIO/spades-KeggGhostKoala-merged.txt
+
+join -11 -a1 --header 05_ANVIO/spades-KeggGhostKoala-merged.txt 05_ANVIO/spades-Pfam-functions-sorted.txt > 05_ANVIO/spades-Pfam-merged.txt
+
+join -11 -a1 --header 05_ANVIO/spades-Pfam-merged.txt 05_ANVIO/spades-GO-functions-sorted.txt > 05_ANVIO/spades-GO-merged.txt
+
+join -11 -a1 --header 05_ANVIO/spades-GO-merged.txt 05_ANVIO/spades-InterPro-functions-sorted.txt > 05_ANVIO/spades-InterPro-merged.txt
+
+join -11 -a1 --header 05_ANVIO/spades-InterPro-merged.txt 05_ANVIO/spades-Hamap-functions-sorted.txt > 05_ANVIO/spades-Hamap-merged.txt
+
+
+
+
+
+
+
+########################################################
+#draft loop
+#######################
 cp 05_ANVIO/spades-gene-calls-sorted.txt 05_ANVIO/spades-genes.txt
 
 for db in ${DATABASES[@]}; do
