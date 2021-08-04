@@ -10,6 +10,7 @@ require(microbiome)
 require(pheatmap)
 require(limma)
 require(ggpubr)
+require(rstatix)
 
 #require(MSqRob)
 #require(pathview)
@@ -104,7 +105,9 @@ prot_sample <- read.csv(paste(wd,"metaP_analysis/quant-no-groups/DECOMB-consensu
                             grepl("T0",File.Name) ==TRUE ~ "T0"),
          Replicate = gsub("_.*","",File.Name),
          Sample.ID = paste(File.ID, File.Name, Type, Run, sep="_"),
-         Group = as.factor(paste(Replicate,Fraction, Run, sep="_"))) # %>% 
+         Group = as.factor(paste(Replicate,Fraction, Run, sep="_")))  %>% 
+          mutate(Sample.ID = gsub("_200616145603","", Sample.ID),
+                 File.Name = gsub("_200616145603","", File.Name)) #correct sample name
   # separate(File.Name, into = c("Sample","Fraction"), sep ="_", remove = FALSE)
 
 #import proteins data
@@ -152,9 +155,10 @@ prot_per_sample <- estimate_richness(prot_obj0, split = TRUE, measures = "Observ
                               grepl("J",File.Name) ==TRUE ~"Jelly",
                               grepl("T0",File.Name) ==TRUE ~ "T0")) %>% 
                       mutate(Type = factor(Type, levels = c("T0","Control","Jelly")),
-                             Sample.ID = gsub("F._|F.._","",File.Name),
+                             Sample.ID = gsub("Control_|Jelly_|T0_","", gsub("F._|F.._","",File.Name)),
                              Tech.Rep = gsub(".*_","",File.Name))
 
+prot_counts_bar.p<- list()
 for (frac in c("metaP","ExoP")){
   sub<- prot_per_sample %>% filter(Fraction ==frac)
 prot_counts_bar.p[[frac]] <- ggplot(sub, aes(x = Sample.ID, y = Observed, fill = Type)) + 
@@ -170,14 +174,78 @@ prot_counts_bar.p[[frac]] <- ggplot(sub, aes(x = Sample.ID, y = Observed, fill =
 }
 
 ggarrange(prot_counts_bar.p[["metaP"]], prot_counts_bar.p[["ExoP"]],
-          ncol = 1, nrow = 2, align = "v")
+          ncol = 2, nrow = 1, align = "hv")
 
+
+#save the plot
+ggsave(paste0(wd,"/R_figures/total_prot.png"), 
+       plot = last_plot(),
+       units = "cm",
+       width = 30, height = 15, 
+       #scale = 1,
+       dpi = 300)
 
 #test differences between runs
 prot_per_sample_test <- prot_per_sample   %>%
   group_by(Fraction) %>% 
-  rstatix::t_test(Observed ~ Replicate, paired = TRUE, p.adjust.method = "BH") %>%
+  t_test(Observed ~ Tech.Rep, paired = TRUE, p.adjust.method = "BH") %>%
   add_significance()
+
+
+###################
+#Protein overlaps between replicates
+###################
+y<- list()
+overlaps_table<- data.frame(Sample=character(), Run1=numeric(),Run2=numeric(), Overlap=numeric())
+
+for (i in sample_data(prot_obj0)$File.Name){
+  sub_group <- subset_samples(prot_obj0, File.Name == i)
+  sub_group <- prune_taxa(taxa_sums(sub_group)>0,sub_group)
+  for (n in 1:2){
+    sub_sample <- subset_samples(sub_group, Run == n)
+    sub_sample <- prune_taxa(taxa_sums(sub_sample)>0,sub_sample)
+    y[[paste(i,n, sep = "_")]] <- as.character(row.names(otu_table(sub_sample)))
+  }
+  overlap<- calculate.overlap(y)
+  overlap.df<- data.frame(Sample= paste(i), Run1 = length(overlap$a1),Run2 = length(overlap$a2), Overlap= length(overlap$a3))
+  overlaps_table<- rbind(overlaps_table, overlap.df)
+  y<- list()
+  }
+
+overlaps_table<- overlaps_table %>% unique() %>% 
+                    mutate(Run1_prop = signif(100*Overlap/Run1, digits = 0),
+                           Run2_prop = signif(100*Overlap/Run2, digits = 0),
+                           Type = case_when(grepl("C",Sample) ==TRUE ~"Control", 
+                                            grepl("J",Sample) ==TRUE ~"Jelly",
+                                            grepl("T0",Sample) ==TRUE ~ "T0"),
+                           Fraction = case_when(grepl("MP",Sample) == TRUE ~ "metaP", TRUE ~ "ExoP"))
+
+
+prot_shared_bar.p<- list()
+for (frac in c("metaP","ExoP")){
+  sub<- overlaps_table %>% filter(Fraction ==frac)
+prot_shared_bar.p[[frac]]  <- ggplot(sub, aes(x= Sample, y= Overlap, fill = Type))+
+  geom_col()+
+  geom_text(aes(x=Sample, y= Overlap+100, label = paste(Run1_prop, Run2_prop, sep ="/")), angle = 45, size = 5)+
+  ylab("# of shared proteins \n")+
+  theme_bw()+
+  theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank(),
+        axis.line = element_line(colour = "black"),
+        text=element_text(size=14),legend.position = "bottom", 
+        axis.title.x = element_blank(), axis.text.x = element_text(angle=90))
+}
+
+ggarrange(prot_shared_bar.p[["metaP"]], prot_shared_bar.p[["ExoP"]],
+          ncol = 2, nrow = 1, align = "hv")
+
+
+#save the plot
+ggsave(paste0(wd,"/R_figures/shared_prot.png"), 
+       plot = last_plot(),
+       units = "cm",
+       width = 30, height = 15, 
+       #scale = 1,
+       dpi = 300)
 
 ###################
 #Combine EL and EH exoP fractions
@@ -194,30 +262,10 @@ row.names(meta)<- meta$Group
 
 sample_data(prot_frac_agg)<- sample_data(meta)
 
-###################
-#Upset protein overlaps between replicates
-###################
-y<- list()
 
-for (i in sample_names(prot_frac_agg)){
-  sub_sample <- prune_samples(i, prot_frac_agg)
-  sub_sample <- prune_taxa(taxa_sums(sub_sample)>0,sub_sample)
-  y[[i]] <- as.character(row.names(otu_table(sub_sample)))
-}
-
-#generate overlap matrix
-protein_overlaps <- pres_abs_matrix(y)    
-protein_overlaps$gene_callers_id <- rownames(protein_overlaps)
-
-#plot
-upset(protein_overlaps, number.angles = 30,
-      sets = as.vector(sample_names(prot_frac_agg)),
-      keep.order = TRUE, 
-      mainbar.y.label = "No. of overlaping proteins",
-      order.by = "freq" ) #,empty.intersections = "on")
 
 ###################
-#Generate NMDS plot
+#Generate PCA plot
 ###################
 #conduct NSAF transformation
 prot_nsaf<- add_nsaf(prot_frac_agg, "prot_length")
@@ -226,9 +274,9 @@ prot_nsaf<- add_nsaf(prot_frac_agg, "prot_length")
 prot_nsaf_clr <- microbiome::transform(prot_nsaf, "clr")
 
 ps_obj_nmds <- ordinate(prot_nsaf_clr, method = "RDA", distance = "euclidean")
-ps_obj_nmds.df <- plot_ordination(prot_nsaf_clr, ps_obj_nmds, axes = c(1,2,3),justDF = TRUE)
+ps_obj_nmds.df <- plot_ordination(prot_nsaf_clr, ps_obj_nmds, axes = c(1,2,3),justDF = TRUE) 
 
-ps_obj_nmds.df$Sample<- row.names(ps_obj_nmds.df)
+ps_obj_nmds.df$Sample<- gsub("metaP_|ExoP_","",row.names(ps_obj_nmds.df))
 
 #extract explained variance
 ps_obj_nmds.evals <- 100 * summary(ps_obj_nmds)$cont$importance[2, c("PC1","PC2")]
@@ -237,7 +285,7 @@ ordination_plot<- ggplot(data = ps_obj_nmds.df, aes(x = PC1, y = PC2, shape = Fr
   geom_point(fill = "black", size = 6,alpha = 0.8) +
   geom_point(aes(colour = Type), size = 4,alpha = 0.8) +
   geom_text(aes(x = PC1, y = PC2,label = Sample), 
-            nudge_y= -1,size=5)+
+            nudge_y= -1,size=4)+
   labs(x = sprintf("PC1 [%s%%]", round(ps_obj_nmds.evals[1], 2)), 
        y = sprintf("PC2 [%s%%]", round(ps_obj_nmds.evals[2], 2)))+
   theme_bw()+
@@ -246,10 +294,10 @@ ordination_plot<- ggplot(data = ps_obj_nmds.df, aes(x = PC1, y = PC2, shape = Fr
         text=element_text(size=14),legend.position = "bottom")
 
 #save the plot
-ggsave(paste0(wd,"/R_figures/PCoA_plot.pdf"), 
-       plot = NMDS_plot,
+ggsave(paste0(wd,"/R_figures/PCA_plot.png"), 
+       plot = ordination_plot,
        units = "cm",
-       width = 30, height = 30, 
+       width = 15, height = 15, 
        #scale = 1,
        dpi = 300)
 
@@ -260,7 +308,7 @@ adonis_all <- adonis2(d ~ Fraction + Type + Run  , df)
 adonis_all
 
 #posthoc to check which ponds are different
-groups <- df[["Type"]]
+groups <- df[["Run"]]
 mod <- betadisper(d, groups)
 permutest(mod)
 
@@ -274,16 +322,20 @@ plot(mod.HSD)
 ###################
 #Identify enriched proteins in MetaP
 ###################
-ps_obj_nsaf_metaP<- subset_samples(prot_nsaf_clr, Type != "T0" & Fraction =="metaP")
+# !!!! Read more regarding technical replicates:
+# https://europepmc.org/article/PMC/4208621
+
+
+ps_obj_nsaf_metaP<- subset_samples(prot_nsaf_clr, Type != "T0" & Fraction =="ExoP"& Run =="2")
 ps_obj_nsaf_metaP_abund<- abundances(ps_obj_nsaf_metaP)
 
 # Prepare the design matrix which states the groups for each sample
-design <- cbind(intercept = 1, Grp2vs1 = sample_data(ps_obj_nsaf_metaP)[["Type"]])
+design <- cbind(intercept = 1, Grp2vs1 = rev(sample_data(ps_obj_nsaf_metaP)[["Type"]]))
 rownames(design) <- row.names(sample_data(ps_obj_nsaf_metaP))
 design <- as.data.frame(design[sample_names(ps_obj_nsaf_metaP), ])
 
 # Fit the limma model
-fit <- lmFit(ps_obj_nsaf_metaP_abund, design, adjust="BH")
+fit <- lmFit(ps_obj_nsaf_metaP_abund, design, adjust="fdr")
 fit <- eBayes(fit)
 
 #explore results
@@ -309,16 +361,35 @@ volcanoplot(fit, coef = coef.index, highlight = coef.index)
 knitr::kable(topTable(fit, coef = coef.index, p.value=0.1), digits = 2)
 
 #plot heat map of the first 100 enriched proteins
-tab_100 <- topTable(fit, n=100, sort.by = "logFC", coef=coef.index) %>% filter(adj.P.Val<0.1)
+tab_100 <- topTable(fit, n=200, sort.by = "logFC", coef=coef.index) %>% filter(adj.P.Val<0.1)
 prot_abund_100<- ps_obj_nsaf_metaP_abund[row.names(tab_100),]
-
-
-
-
 pheatmap(prot_abund_100)
 
 
 
+
+
+
+
+
+
+y<- list()
+for (i in sample_names(prot_obj0)){
+  sub_sample <- prune_samples(i, prot_obj0)
+  sub_sample <- prune_taxa(taxa_sums(sub_sample)>0,sub_sample)
+  y[[i]] <- as.character(row.names(otu_table(sub_sample)))
+}
+
+#generate overlap matrix
+protein_overlaps <- pres_abs_matrix(y)    
+protein_overlaps$gene_callers_id <- rownames(protein_overlaps)
+
+#plot
+upset(protein_overlaps, number.angles = 30,
+      sets = as.vector(sample_names(prot_frac_agg)),
+      keep.order = TRUE, 
+      mainbar.y.label = "No. of overlaping proteins",
+      order.by = "freq" ) #,empty.intersections = "on")
 
 
 
