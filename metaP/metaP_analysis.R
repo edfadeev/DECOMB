@@ -253,16 +253,33 @@ ggsave(paste0(wd,"/R_figures/shared_prot.png"),
 #aggregate the fractions
 prot_frac_agg <- merge_samples(prot_obj0, "Group", fun = sum)
 otu_table(prot_frac_agg)<- t(otu_table(prot_frac_agg))
+
 #generate aggregated metadata
 meta <- sample_data(prot_obj0)
 meta <- as(meta, "data.frame") %>% select(Group, Fraction, Type, Run) %>% 
   unique() %>% mutate(Fraction = as.factor(Fraction),
-                      Type = as.factor(Type))
+                      Type = as.factor(Type),
+                      Merge = gsub("_1|_2","",Group))
 row.names(meta)<- meta$Group
 
 sample_data(prot_frac_agg)<- sample_data(meta)
 
+###################
+#Merge the two runs together
+###################
+# !!!! Read more regarding technical replicates:
+# https://europepmc.org/article/PMC/4208621
+meta<- data.frame(SampleID = sample_names(prot_frac_agg)) %>% 
+  separate(SampleID, into = c("Type","Fraction"), remove =FALSE) %>% 
+  mutate(Type = case_when(grepl("C",SampleID) ==TRUE ~"Control", 
+                          grepl("J",SampleID) ==TRUE ~"Jelly",
+                          grepl("T0",SampleID) ==TRUE ~ "T0"))
 
+row.names(meta)<- meta$SampleID
+
+prot_frac_agg <- merge_samples(prot_frac_agg, "Merge", fun = sum)
+
+sample_data(prot_frac_agg)<- sample_data(meta)
 
 ###################
 #Generate PCA plot
@@ -304,11 +321,11 @@ ggsave(paste0(wd,"/R_figures/PCA_plot.png"),
 #test significance of clustering
 df <- as(sample_data(prot_nsaf_clr), "data.frame")
 d <- phyloseq::distance(prot_nsaf_clr, "euclidean")
-adonis_all <- adonis2(d ~ Fraction + Type + Run  , df)
+adonis_all <- adonis2(d ~ Fraction + Type  , df)
 adonis_all
 
 #posthoc to check which ponds are different
-groups <- df[["Run"]]
+groups <- df[["Type"]]
 mod <- betadisper(d, groups)
 permutest(mod)
 
@@ -322,15 +339,11 @@ plot(mod.HSD)
 ###################
 #Identify enriched proteins in MetaP
 ###################
-# !!!! Read more regarding technical replicates:
-# https://europepmc.org/article/PMC/4208621
-
-
-ps_obj_nsaf_metaP<- subset_samples(prot_nsaf_clr, Type != "T0" & Fraction =="ExoP"& Run =="2")
+ps_obj_nsaf_metaP<- subset_samples(prot_nsaf_clr, Type != "T0" & Fraction =="metaP")
 ps_obj_nsaf_metaP_abund<- abundances(ps_obj_nsaf_metaP)
 
 # Prepare the design matrix which states the groups for each sample
-design <- cbind(intercept = 1, Grp2vs1 = rev(sample_data(ps_obj_nsaf_metaP)[["Type"]]))
+design <- cbind(intercept = 1, Grp2vs1 = as.factor(sample_data(ps_obj_nsaf_metaP)[["Type"]]))
 rownames(design) <- row.names(sample_data(ps_obj_nsaf_metaP))
 design <- as.data.frame(design[sample_names(ps_obj_nsaf_metaP), ])
 
