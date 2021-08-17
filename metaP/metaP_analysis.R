@@ -73,38 +73,23 @@ gene_tax_table <- read.csv(paste(wd,"metaG_analysis/metaG_anvio/05_ANVIO/spades_
                            sep="\t", h= T)
 
 #gene annotation list by sources
-gene_annotations<- list()
-gene_annotations[["gene_ids"]] <- read.csv(paste(wd,"metaG_analysis/metaG_anvio/05_ANVIO/spades_merged/spades-gene-calls.txt",sep=""),
-                           sep="\t", h= T)
-                           
+gene_ids <- read.csv(paste(wd,"metaG_analysis/metaG_anvio/05_ANVIO/spades_merged/spades-gene-calls.txt",sep=""),
+                                           sep="\t", h= T)
+gene_annotations_df<- gene_ids
+
 for (src in c("COG20_FUNCTION","KeggGhostKoala","GO","Pfam","InterPro", "Hamap")){
-gene_annotations[[src]] <- read.csv(paste(wd,"metaG_analysis/metaG_anvio/05_ANVIO/spades_merged/spades-",src,"-functions.txt",sep=""),
-                           sep="\t", h= T)%>% select(gene_callers_id, accession, function.) %>% 
-  group_by(gene_callers_id)%>%
-  summarise_each(funs(paste(unique(.), collapse='|')),matches('^\\D+$')) %>% 
-  plyr::rename(replace= c("accession"=paste(src, "accession", sep ="_"), "function."=paste(src, "function", sep ="_")))
+  gene_annotations <- read.csv(paste(wd,"metaG_analysis/metaG_anvio/05_ANVIO/spades_merged/spades-",src,"-functions.txt",sep=""),
+                                      sep="\t", h= T)%>% select(gene_callers_id, accession, function.) %>% 
+    group_by(gene_callers_id)%>%
+    summarise_each(funs(paste(unique(.), collapse='|')),matches('^\\D+$')) %>% 
+    plyr::rename(replace= c("accession"=paste(src, "accession", sep ="_"), "function."=paste(src, "function", sep ="_")))
+  
+  gene_annotations_df<- merge(gene_annotations_df,gene_annotations, by ="gene_callers_id", all = TRUE )
 }
 
-#merge all dataframes
-gene_annotations_list <- Map(cbind, gene_annotations)
-
-
-require(plyr) # requires plyr for rbind.fill()
-cbind.fill <- function(...) {                                                                                                                                                       
-  transpoted <- lapply(list(...),t)                                                                                                                                                 
-  transpoted_dataframe <- lapply(transpoted, as.data.frame)                                                                                                                         
-  return (data.frame(t(rbind.fill(transpoted_dataframe))))                                                                                                                          
-} 
-
-gene_annotations_df <- cbind.fill(gene_annotations_list)
-
-
-plyr::cbind.fill
 #merge taxonomy and gene ids together and calculate protein length
 genes_meta <- merge(gene_tax_table,tax_table, by ="taxon_id", all.x = TRUE) %>% 
-                merge(gene_annotations[["gene_ids"]], by ="gene_callers_id", all = TRUE) %>% 
-                  select(c("gene_callers_id", "contig", "start", "stop","aa_sequence",
-                           "taxon_id", "t_genus", "t_species")) %>% 
+                merge(gene_annotations_df, by ="gene_callers_id", all = TRUE) %>% 
                     group_by(aa_sequence) %>% 
                     mutate(prot_length = nchar(aa_sequence))
                 
@@ -160,6 +145,23 @@ prot_obj0<- phyloseq(protein_counts, annotation, sample_meta)
 
 #remove proteins that were not observed 
 prot_obj0<- prune_taxa(taxa_sums(prot_obj0)>0,prot_obj0)
+
+#save phyloseq
+saveRDS(prot_obj0, "metaP/phyloseq_raw.rds")
+
+#clean workspace
+rm(list = ls())
+
+
+
+
+
+
+
+
+
+#load phyloseq
+prot_obj0<- readRDS("metaP/phyloseq_raw.rds")
 
 ###################
 #Plot number of proteins per sample
