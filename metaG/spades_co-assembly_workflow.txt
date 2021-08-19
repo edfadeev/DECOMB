@@ -135,6 +135,16 @@ anvi-refine -p $WORKDIR/05_ANVIO/SPAdes/merged_profile/PROFILE.db -c $WORKDIR/05
 #Bin_38_1 - Vibrio - length 1.7Mbp (C83/R0)
 anvi-refine -p $WORKDIR/05_ANVIO/SPAdes/merged_profile/PROFILE.db -c $WORKDIR/05_ANVIO/spades.db -C CONCOCT -b Bin_38 --server-only -P 5678
 
+#Bin 38
+#Based on coverage large part of the bin was discarded, however the remained bin also varies in coverage
+#Bin_102_1 - Kordiimonas lacus - length 2.18Mbp (C73/R0)
+anvi-refine -p $WORKDIR/05_ANVIO/SPAdes/merged_profile/PROFILE.db -c $WORKDIR/05_ANVIO/spades.db -C CONCOCT -b Bin_102 --server-only -P 5678
+
+#Bin 12
+#Based on coverage large part of the bin was discarded, however the remained bin also varies in coverage
+#Bin_12_1 - Saccharospirillum sp003054965 - length 3.75Mbp (C95.8/R1.4)
+anvi-refine -p $WORKDIR/05_ANVIO/SPAdes/merged_profile/PROFILE.db -c $WORKDIR/05_ANVIO/spades.db -C CONCOCT -b Bin_102 --server-only -P 5678
+
 #Bin 5
 #Based on coverage large part of the bin was discarded, however the remained bin also varies in coverage
 #Bin_5_1 - Alteromonas - length 4.63Mbp (C59.2/R1.4)
@@ -154,7 +164,14 @@ anvi-refine -p $WORKDIR/05_ANVIO/SPAdes/merged_profile/PROFILE.db -c $WORKDIR/05
 #Bin_150_1_1 - Rhodobacteraceae - length 2.6Mbp (C97.2/R1.4)
 anvi-refine -p $WORKDIR/05_ANVIO/SPAdes/merged_profile/PROFILE.db -c $WORKDIR/05_ANVIO/spades.db -C CONCOCT -b Bin_150 --server-only -P 5678
 
-#summarzed refined bins
+#Mergin Bin_75 and Bin_177 did not povide better binning of the Pseudoazteromnas genome
+#anvi-merge-bins -p $WORKDIR/05_ANVIO/SPAdes/merged_profile/PROFILE.db -C CONCOCT --bin-names-list "Bin_75, Bin_177" --new-bin-name Bin_75_177
+#anvi-refine -p $WORKDIR/05_ANVIO/SPAdes/merged_profile/PROFILE.db -c $WORKDIR/05_ANVIO/spades.db -C CONCOCT -b Bin_75_177 --server-only -P 5678
+
+#create collection of the selected bins
+anvi-script-add-default-collection -p $WORKDIR/05_ANVIO/SPAdes/merged_profile/PROFILE.db -c $WORKDIR/05_ANVIO/spades.db --collection-name Selection --bin-id "Bin_84_1, Bin_76_1, Bin_5_2, Bin_2_1, Bin_5_3, Bin_38_1, Bin_2_2, Bin_179_1, Bin_115_2, Bin_115_1, Bin_102_1, Bin_12_1"
+
+#summarize and export them for further analysis
 sbatch ../DECOMB/metaG/sum_refined_bins.sh
 
 
