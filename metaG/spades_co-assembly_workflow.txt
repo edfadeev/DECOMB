@@ -1,6 +1,7 @@
+
+ssh -L 5678:localhost:5678 slurm
+
 #workflow for co-assembly of metagenomes using SPAdes and annotation using Anvio
-
-
 conda activate /apps/anvio/7
 
 #Set up the path to the working directory
@@ -92,8 +93,69 @@ join -11 -a1 --header 05_ANVIO/spades-GO-merged.txt 05_ANVIO/spades-InterPro-fun
 
 join -11 -a1 --header 05_ANVIO/spades-InterPro-merged.txt 05_ANVIO/spades-Hamap-functions-sorted.txt > 05_ANVIO/spades-Hamap-merged.txt
 
+################################
+#Produce bins
+################################
 
+mkdir 06_BINS
 
+sbatch ../DECOMB/metaG/bin_co-assembly.sh
+
+#explore bins of CONCOCT (they were better than the ones got out of metabat)
+anvi-interactive -p $WORKDIR/05_ANVIO/SPAdes/merged_profile/PROFILE.db -c $WORKDIR/05_ANVIO/spades.db -C CONCOCT --server-only -P 5678
+
+#refine selected bins
+
+#Bin 84
+#in the following step part of the contigs were removed due to coverage differences
+#the removed conitgs had no taxonomic assignment
+#Bin_84_1 - Pseudoalteromonas phenolica - length 3.92Mbp (C93/R0). 
+
+anvi-refine -p $WORKDIR/05_ANVIO/SPAdes/merged_profile/PROFILE.db -c $WORKDIR/05_ANVIO/spades.db -C CONCOCT -b Bin_84 --server-only -P 5678
+
+#Bin 115
+#Based on coverage, the bin was split into two sub bins and part of the sequences were discarded.
+#Bin_115_1 - Bermanella sp002683575 (Pseudomonadales) - length 4.86Mbp (C98.6/R0)
+#Bin_115_2 - Glaciecola sp000155775 (Enterobacterales) - length 2.22Mbp (C100/R0)
+
+anvi-refine -p $WORKDIR/05_ANVIO/SPAdes/merged_profile/PROFILE.db -c $WORKDIR/05_ANVIO/spades.db -C CONCOCT -b Bin_115 --server-only -P 5678
+
+#Bin 76
+#Based on coverage large part of the bin was discarded.
+#Bin_76_1 - Marinobacterium jannaschii (weak taxonomy, but for sure family Nitrincolaceae) - length 3.78Mbp (C100/R0)
+anvi-refine -p $WORKDIR/05_ANVIO/SPAdes/merged_profile/PROFILE.db -c $WORKDIR/05_ANVIO/spades.db -C CONCOCT -b Bin_76 --server-only -P 5678
+
+#Bin 179
+#Based on coverage large part of the bin was discarded, however the remained bin also varies in coverage
+#Bin_179_1 - family Cellvibrionaceae - length 3.18Mbp (C93/R2.8)
+anvi-refine -p $WORKDIR/05_ANVIO/SPAdes/merged_profile/PROFILE.db -c $WORKDIR/05_ANVIO/spades.db -C CONCOCT -b Bin_179 --server-only -P 5678
+
+#Bin 38
+#Based on coverage large part of the bin was discarded, however the remained bin also varies in coverage
+#Bin_38_1 - Vibrio - length 1.7Mbp (C83/R0)
+anvi-refine -p $WORKDIR/05_ANVIO/SPAdes/merged_profile/PROFILE.db -c $WORKDIR/05_ANVIO/spades.db -C CONCOCT -b Bin_38 --server-only -P 5678
+
+#Bin 5
+#Based on coverage large part of the bin was discarded, however the remained bin also varies in coverage
+#Bin_5_1 - Alteromonas - length 4.63Mbp (C59.2/R1.4)
+#Bin_5_2 - family Nitrincolaceae - length 5.19Mbp (C100/R0)
+#Bin_5_3 - Reinekea blandensis (Pseudomonadales) - length 4.08Mbp (C100/R2.8)
+#Bin_5_4 - Pseudoalteromonas - length 4.87Mbp (C42.3/R0)
+anvi-refine -p $WORKDIR/05_ANVIO/SPAdes/merged_profile/PROFILE.db -c $WORKDIR/05_ANVIO/spades.db -C CONCOCT -b Bin_5 --server-only -P 5678
+
+#Bin 2
+#The bin was split into two separated bins of Alteromonas
+#Bin_2_1 - Alteromonas - length 3.7Mbp (C78.9/R0)
+#Bin_2_2 - Alteromonas - length 5.19Mbp (C80.3/R0)
+anvi-refine -p $WORKDIR/05_ANVIO/SPAdes/merged_profile/PROFILE.db -c $WORKDIR/05_ANVIO/spades.db -C CONCOCT -b Bin_2 --server-only -P 5678
+
+#Bin 150
+#The bin was refined twice to reduce redundancy
+#Bin_150_1_1 - Rhodobacteraceae - length 2.6Mbp (C97.2/R1.4)
+anvi-refine -p $WORKDIR/05_ANVIO/SPAdes/merged_profile/PROFILE.db -c $WORKDIR/05_ANVIO/spades.db -C CONCOCT -b Bin_150 --server-only -P 5678
+
+#summarzed refined bins
+sbatch ../DECOMB/metaG/sum_refined_bins.sh
 
 
 
