@@ -180,10 +180,10 @@ anvi-script-add-default-collection -p $WORKDIR/05_ANVIO/SPAdes/merged_profile/PR
 sbatch ../DECOMB/metaG/sum_refined_bins.sh
 
 #split the refined bins into separated databased
-anvi-split -p $WORKDIR/05_ANVIO/SPAdes/merged_profile/PROFILE.db -c $WORKDIR/05_ANVIO/spades.db --collection-name Selection --bin-id "Bin_84_1, Bin_76_1, Bin_5_2, Bin_2_1, Bin_5_3, Bin_38_1, Bin_2_2, Bin_179_1, Bin_115_2, Bin_115_1, Bin_102_1, Bin_12_1, 150_1_1" -o $WORKDIR/07_REFINED
+# exporting only selected bins for some reson doesnt work
+# --bin-id "Bin_84_1, Bin_76_1, Bin_5_2, Bin_2_1, Bin_5_3, Bin_38_1, Bin_2_2, Bin_179_1, Bin_115_2, Bin_115_1, Bin_102_1, Bin_12_1, 150_1_1"
 
-#remove unsued bin
-rm -vR !("Bin_84_1" "Bin_76_1" "Bin_5_2" "Bin_2_1" "Bin_5_3" "Bin_38_1" "Bin_2_2" "Bin_179_1" "Bin_115_2" "Bin_115_1" "Bin_102_1" "Bin_12_1" "150_1_1")
+anvi-split -p $WORKDIR/05_ANVIO/SPAdes/merged_profile/PROFILE.db -c $WORKDIR/05_ANVIO/spades.db --collection-name CONCOCT -o $WORKDIR/07_REFINED 
 
 #generate protein fasta files for each selected bin
 mkdir $WORKDIR/07_REFINED/prot_AAs
