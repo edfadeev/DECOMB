@@ -1,4 +1,4 @@
-
+#login with port forwarding
 ssh -L 5678:localhost:5678 slurm
 
 #workflow for co-assembly of metagenomes using SPAdes and annotation using Anvio
@@ -55,8 +55,13 @@ anvi-import-functions -c 05_ANVIO/spades.db -i 05_ANVIO/KeggAnnotations-AnviImpo
 ################################
 #export data for metaP reference
 ################################
+#export AAs of all the gene calls
+anvi-get-sequences-for-gene-calls -c $WORKDIR/05_ANVIO/spades.db --report-extended-deflines --get-aa-sequences -o $WORKDIR/05_ANVIO/
 
-sed -n '2,$p' 05_ANVIO/spades-gene-calls.txt | sort -n -k 1 > 05_ANVIO/spades-gene-calls-sorted.txt
+sed -n '2,$p' $WORKDIR/05_ANVIO/spades-gene-calls.txt | sort -n -k 1 > $WORKDIR/05_ANVIO/spades-gene-calls-sorted.txt
+
+#generate AAs reference fasta file for the entire metagenome
+awk '{print ">"$1"_"$2"\n"$10}' $WORKDIR/05_ANVIO/spades-gene-calls-sorted.txt > $WORKDIR/05_ANVIO/spades-AAs-ref-db.fasta
 
 #export functions of each gene
 
@@ -147,10 +152,10 @@ anvi-refine -p $WORKDIR/05_ANVIO/SPAdes/merged_profile/PROFILE.db -c $WORKDIR/05
 
 #Bin 5
 #Based on coverage large part of the bin was discarded, however the remained bin also varies in coverage
-#Bin_5_1 - Alteromonas - length 4.63Mbp (C59.2/R1.4)
+#Bin_5_1 - Alteromonas - length 4.63Mbp (C59.2/R1.4) - not included due to low completness
 #Bin_5_2 - family Nitrincolaceae - length 5.19Mbp (C100/R0)
 #Bin_5_3 - Reinekea blandensis (Pseudomonadales) - length 4.08Mbp (C100/R2.8)
-#Bin_5_4 - Pseudoalteromonas - length 4.87Mbp (C42.3/R0)
+#Bin_5_4 - Pseudoalteromonas - length 4.87Mbp (C42.3/R0) - not included due to low completness
 anvi-refine -p $WORKDIR/05_ANVIO/SPAdes/merged_profile/PROFILE.db -c $WORKDIR/05_ANVIO/spades.db -C CONCOCT -b Bin_5 --server-only -P 5678
 
 #Bin 2
@@ -174,6 +179,21 @@ anvi-script-add-default-collection -p $WORKDIR/05_ANVIO/SPAdes/merged_profile/PR
 #summarize and export them for further analysis
 sbatch ../DECOMB/metaG/sum_refined_bins.sh
 
+#split the refined bins into separated databased
+anvi-split -p $WORKDIR/05_ANVIO/SPAdes/merged_profile/PROFILE.db -c $WORKDIR/05_ANVIO/spades.db --collection-name Selection --bin-id "Bin_84_1, Bin_76_1, Bin_5_2, Bin_2_1, Bin_5_3, Bin_38_1, Bin_2_2, Bin_179_1, Bin_115_2, Bin_115_1, Bin_102_1, Bin_12_1, 150_1_1" -o $WORKDIR/07_REFINED
+
+#remove unsued bin
+rm -vR !("Bin_84_1" "Bin_76_1" "Bin_5_2" "Bin_2_1" "Bin_5_3" "Bin_38_1" "Bin_2_2" "Bin_179_1" "Bin_115_2" "Bin_115_1" "Bin_102_1" "Bin_12_1" "150_1_1")
+
+#generate protein fasta files for each selected bin
+mkdir $WORKDIR/07_REFINED/prot_AAs
+
+BINS=("Bin_84_1" "Bin_76_1" "Bin_5_2" "Bin_2_1" "Bin_5_3" "Bin_38_1" "Bin_2_2" "Bin_179_1" "Bin_115_2" "Bin_115_1" "Bin_102_1" "Bin_12_1" "Bin_150_1_1")
+
+for bin in ${BINS[@]}; do
+anvi-get-sequences-for-gene-calls -c $WORKDIR/07_REFINED/$bin/CONTIGS.db --report-extended-deflines --get-aa-sequences -o $WORKDIR/07_REFINED/prot_AAs/DECOMB-${bin}_prot.fasta
+
+done
 
 
 
