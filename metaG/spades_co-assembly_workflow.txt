@@ -54,8 +54,13 @@ anvi-import-functions -c 05_ANVIO/spades.db -i 05_ANVIO/KeggAnnotations-AnviImpo
 ################################
 #export data for metaP reference
 ################################
+#export AAs of all the gene calls
+anvi-get-sequences-for-gene-calls -c $WORKDIR/05_ANVIO/spades.db --report-extended-deflines --get-aa-sequences -o $WORKDIR/05_ANVIO/
 
-sed -n '2,$p' 05_ANVIO/spades-gene-calls.txt | sort -n -k 1 > 05_ANVIO/spades-gene-calls-sorted.txt
+sed -n '2,$p' $WORKDIR/05_ANVIO/spades-gene-calls.txt | sort -n -k 1 > $WORKDIR/05_ANVIO/spades-gene-calls-sorted.txt
+
+#generate AAs reference fasta file for the entire metagenome
+awk '{print ">"$1"_"$2"\n"$10}' $WORKDIR/05_ANVIO/spades-gene-calls-sorted.txt > $WORKDIR/05_ANVIO/spades-AAs-ref-db.fasta
 
 #export functions of each gene
 
@@ -92,8 +97,44 @@ join -11 -a1 --header 05_ANVIO/spades-GO-merged.txt 05_ANVIO/spades-InterPro-fun
 
 join -11 -a1 --header 05_ANVIO/spades-InterPro-merged.txt 05_ANVIO/spades-Hamap-functions-sorted.txt > 05_ANVIO/spades-Hamap-merged.txt
 
+################################
+#Produce bins
+################################
 
+mkdir 06_BINS
 
+sbatch ../DECOMB/metaG/bin_co-assembly.sh
+
+#explore bins of CONCOCT (they were better than the ones got out of metabat)
+anvi-interactive -p $WORKDIR/05_ANVIO/SPAdes/merged_profile/PROFILE.db -c $WORKDIR/05_ANVIO/spades.db -C CONCOCT --server-only -P 5678
+
+#refine selected bins
+
+#Bin 84
+#in the following step part of the contigs were removed due to coverage differences
+#the removed conitgs had no taxonomic assignment
+#Bin_84_1 - Pseudoalteromonas phenolica - length 3.92Mbp (C93/R0). 
+
+anvi-refine -p $WORKDIR/05_ANVIO/SPAdes/merged_profile/PROFILE.db -c $WORKDIR/05_ANVIO/spades.db -C CONCOCT -b Bin_84 --server-only -P 5678
+
+#Bin 115
+#Based on coverage, the bin was split into two sub bins and part of the sequences were discarded.
+#Bin_115_1 - Bermanella sp002683575 (Pseudomonadales) - length 4.86Mbp (C98.6/R0)
+#Bin_115_2 - Glaciecola sp000155775 (Enterobacterales) - length 2.22Mbp (C100/R0)
+
+anvi-refine -p $WORKDIR/05_ANVIO/SPAdes/merged_profile/PROFILE.db -c $WORKDIR/05_ANVIO/spades.db -C CONCOCT -b Bin_115 --server-only -P 5678
+
+#Bin 76
+#Based on coverage large part of the bin was discarded.
+#Bin_76_1 - Marinobacterium jannaschii (weak taxonomy, but for sure family Nitrincolaceae) - length 3.78Mbp (C100/R0)
+anvi-refine -p $WORKDIR/05_ANVIO/SPAdes/merged_profile/PROFILE.db -c $WORKDIR/05_ANVIO/spades.db -C CONCOCT -b Bin_76 --server-only -P 5678
+
+#Bin 179
+#Based on coverage large part of the bin was discarded, however the remained bin also varies in coverage
+#Bin_179_1 - family Cellvibrionaceae - length 3.18Mbp (C93/R2.8)
+anvi-refine -p $WORKDIR/05_ANVIO/SPAdes/merged_profile/PROFILE.db -c $WORKDIR/05_ANVIO/spades.db -C CONCOCT -b Bin_179 --server-only -P 5678
+
+<<<<<<< HEAD
 ################################
 # Bin the metagenome
 ################################
@@ -103,7 +144,67 @@ mkdir 06_BINS
 #run binning using CONCOCT and using Metabat2
 sbatch ../DECOMB/metaG/bin_co-assembly.sh
 
+=======
+#Bin 38
+#Based on coverage large part of the bin was discarded, however the remained bin also varies in coverage
+#Bin_38_1 - Vibrio - length 1.7Mbp (C83/R0)
+anvi-refine -p $WORKDIR/05_ANVIO/SPAdes/merged_profile/PROFILE.db -c $WORKDIR/05_ANVIO/spades.db -C CONCOCT -b Bin_38 --server-only -P 5678
+>>>>>>> 34bfdaaaa4b5d46834e0e6b39ebe40c16a0266cf
 
+#Bin 38
+#Based on coverage large part of the bin was discarded, however the remained bin also varies in coverage
+#Bin_102_1 - Kordiimonas lacus - length 2.18Mbp (C73/R0)
+anvi-refine -p $WORKDIR/05_ANVIO/SPAdes/merged_profile/PROFILE.db -c $WORKDIR/05_ANVIO/spades.db -C CONCOCT -b Bin_102 --server-only -P 5678
+
+#Bin 12
+#Based on coverage large part of the bin was discarded, however the remained bin also varies in coverage
+#Bin_12_1 - Saccharospirillum sp003054965 - length 3.75Mbp (C95.8/R1.4)
+anvi-refine -p $WORKDIR/05_ANVIO/SPAdes/merged_profile/PROFILE.db -c $WORKDIR/05_ANVIO/spades.db -C CONCOCT -b Bin_102 --server-only -P 5678
+
+#Bin 5
+#Based on coverage large part of the bin was discarded, however the remained bin also varies in coverage
+#Bin_5_1 - Alteromonas - length 4.63Mbp (C59.2/R1.4) - not included due to low completness
+#Bin_5_2 - family Nitrincolaceae - length 5.19Mbp (C100/R0)
+#Bin_5_3 - Reinekea blandensis (Pseudomonadales) - length 4.08Mbp (C100/R2.8)
+#Bin_5_4 - Pseudoalteromonas - length 4.87Mbp (C42.3/R0) - not included due to low completness
+anvi-refine -p $WORKDIR/05_ANVIO/SPAdes/merged_profile/PROFILE.db -c $WORKDIR/05_ANVIO/spades.db -C CONCOCT -b Bin_5 --server-only -P 5678
+
+#Bin 2
+#The bin was split into two separated bins of Alteromonas
+#Bin_2_1 - Alteromonas - length 3.7Mbp (C78.9/R0)
+#Bin_2_2 - Alteromonas - length 5.19Mbp (C80.3/R0)
+anvi-refine -p $WORKDIR/05_ANVIO/SPAdes/merged_profile/PROFILE.db -c $WORKDIR/05_ANVIO/spades.db -C CONCOCT -b Bin_2 --server-only -P 5678
+
+#Bin 150
+#The bin was refined twice to reduce redundancy
+#Bin_150_1_1 - Rhodobacteraceae - length 2.6Mbp (C97.2/R1.4)
+anvi-refine -p $WORKDIR/05_ANVIO/SPAdes/merged_profile/PROFILE.db -c $WORKDIR/05_ANVIO/spades.db -C CONCOCT -b Bin_150 --server-only -P 5678
+
+#Mergin Bin_75 and Bin_177 did not povide better binning of the Pseudoazteromnas genome
+#anvi-merge-bins -p $WORKDIR/05_ANVIO/SPAdes/merged_profile/PROFILE.db -C CONCOCT --bin-names-list "Bin_75, Bin_177" --new-bin-name Bin_75_177
+#anvi-refine -p $WORKDIR/05_ANVIO/SPAdes/merged_profile/PROFILE.db -c $WORKDIR/05_ANVIO/spades.db -C CONCOCT -b Bin_75_177 --server-only -P 5678
+
+#create collection of the selected bins
+anvi-script-add-default-collection -p $WORKDIR/05_ANVIO/SPAdes/merged_profile/PROFILE.db -c $WORKDIR/05_ANVIO/spades.db --collection-name Selection --bin-id "Bin_84_1, Bin_76_1, Bin_5_2, Bin_2_1, Bin_5_3, Bin_38_1, Bin_2_2, Bin_179_1, Bin_115_2, Bin_115_1, Bin_102_1, Bin_12_1"
+
+#summarize and export them for further analysis
+sbatch ../DECOMB/metaG/sum_refined_bins.sh
+
+#split the refined bins into separated databased
+# exporting only selected bins for some reson doesnt work
+# --bin-id "Bin_84_1, Bin_76_1, Bin_5_2, Bin_2_1, Bin_5_3, Bin_38_1, Bin_2_2, Bin_179_1, Bin_115_2, Bin_115_1, Bin_102_1, Bin_12_1, 150_1_1"
+
+anvi-split -p $WORKDIR/05_ANVIO/SPAdes/merged_profile/PROFILE.db -c $WORKDIR/05_ANVIO/spades.db --collection-name CONCOCT -o $WORKDIR/07_REFINED 
+
+#generate protein fasta files for each selected bin
+mkdir $WORKDIR/07_REFINED/prot_AAs
+
+BINS=("Bin_84_1" "Bin_76_1" "Bin_5_2" "Bin_2_1" "Bin_5_3" "Bin_38_1" "Bin_2_2" "Bin_179_1" "Bin_115_2" "Bin_115_1" "Bin_102_1" "Bin_12_1" "Bin_150_1_1")
+
+for bin in ${BINS[@]}; do
+anvi-get-sequences-for-gene-calls -c $WORKDIR/07_REFINED/$bin/CONTIGS.db --report-extended-deflines --get-aa-sequences -o $WORKDIR/07_REFINED/prot_AAs/DECOMB-${bin}_prot.fasta
+
+done
 
 
 
