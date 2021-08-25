@@ -1,6 +1,7 @@
+#login with port forwarding
+ssh -L 5678:localhost:5678 slurm
+
 #workflow for co-assembly of metagenomes using SPAdes and annotation using Anvio
-
-
 conda activate /apps/anvio/7
 
 #Set up the path to the working directory
@@ -134,22 +135,10 @@ anvi-refine -p $WORKDIR/05_ANVIO/SPAdes/merged_profile/PROFILE.db -c $WORKDIR/05
 #Bin_179_1 - family Cellvibrionaceae - length 3.18Mbp (C93/R2.8)
 anvi-refine -p $WORKDIR/05_ANVIO/SPAdes/merged_profile/PROFILE.db -c $WORKDIR/05_ANVIO/spades.db -C CONCOCT -b Bin_179 --server-only -P 5678
 
-<<<<<<< HEAD
-################################
-# Bin the metagenome
-################################
-
-mkdir 06_BINS
-
-#run binning using CONCOCT and using Metabat2
-sbatch ../DECOMB/metaG/bin_co-assembly.sh
-
-=======
 #Bin 38
 #Based on coverage large part of the bin was discarded, however the remained bin also varies in coverage
 #Bin_38_1 - Vibrio - length 1.7Mbp (C83/R0)
 anvi-refine -p $WORKDIR/05_ANVIO/SPAdes/merged_profile/PROFILE.db -c $WORKDIR/05_ANVIO/spades.db -C CONCOCT -b Bin_38 --server-only -P 5678
->>>>>>> 34bfdaaaa4b5d46834e0e6b39ebe40c16a0266cf
 
 #Bin 38
 #Based on coverage large part of the bin was discarded, however the remained bin also varies in coverage
