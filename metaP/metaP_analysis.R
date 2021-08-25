@@ -95,7 +95,9 @@ genes_meta <- merge(gene_tax_table,tax_table, by ="taxon_id", all.x = TRUE) %>%
                 merge(gene_annotations_df, by ="gene_callers_id", all = TRUE) %>% 
                     group_by(aa_sequence) %>% 
                     mutate(prot_length = nchar(aa_sequence))
-                
+
+#write.csv(genes_meta, "metaP/genes_meta.txt")    
+
 ########################################
 #import metaproteome data
 ########################################
