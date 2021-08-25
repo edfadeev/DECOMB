@@ -223,7 +223,14 @@ anvi-interactive --manual-mode \
                  --title "Bins Metabolism Heatmap" \
                  --server-only -P 5678
                  
-                 
+#modules data is available here:
+less $WORKDIR/08_METABOLISM/Bins_modules.txt
+
+#one can explore specific modules in genomes using following command:
+grep 'M00018' $WORKDIR/08_METABOLISM/Bins_modules.txt | cut -f 2,4,9,10,12,13
+
+#KO hits per genome is available here:
+less 08_METABOLISM/Bins_kofam_hits.txt
 
 ########################################################
 #draft loop
