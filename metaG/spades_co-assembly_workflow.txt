@@ -186,16 +186,44 @@ sbatch ../DECOMB/metaG/sum_refined_bins.sh
 anvi-split -p $WORKDIR/05_ANVIO/SPAdes/merged_profile/PROFILE.db -c $WORKDIR/05_ANVIO/spades.db --collection-name CONCOCT -o $WORKDIR/07_REFINED 
 
 #generate protein fasta files for each selected bin
-mkdir $WORKDIR/07_REFINED/prot_AAs
+mkdir $WORKDIR/07_REFINED/genes_and_prot
 
 BINS=("Bin_84_1" "Bin_76_1" "Bin_5_2" "Bin_2_1" "Bin_5_3" "Bin_38_1" "Bin_2_2" "Bin_179_1" "Bin_115_2" "Bin_115_1" "Bin_102_1" "Bin_12_1" "Bin_150_1_1")
 
 for bin in ${BINS[@]}; do
-anvi-get-sequences-for-gene-calls -c $WORKDIR/07_REFINED/$bin/CONTIGS.db --report-extended-deflines --get-aa-sequences -o $WORKDIR/07_REFINED/prot_AAs/DECOMB-${bin}_prot.fasta
+anvi-get-sequences-for-gene-calls -c $WORKDIR/07_REFINED/$bin/CONTIGS.db --report-extended-deflines --get-aa-sequences -o $WORKDIR/07_REFINED/genes_and_prot/DECOMB-${bin}_prot.fasta
+
+#export also the DNA sequences
+anvi-get-sequences-for-gene-calls -c $WORKDIR/07_REFINED/$bin/CONTIGS.db --report-extended-deflines -o $WORKDIR/07_REFINED/genes_and_prot/DECOMB-${bin}_genes.fasta
 
 done
 
+################################
+#Metabolic reconstruction of each bin
+################################
+mkdir 08_METABOLISM
 
+#list of bins and their locations
+echo -e "name\tcontigs_db_path" > $WORKDIR/08_METABOLISM/selected-bins.txt
+for bin in ${BINS[@]}; do 
+echo -e "${bin}\t${WORKDIR}/07_REFINED/${bin}/CONTIGS.db" >> $WORKDIR/08_METABOLISM/selected-bins.txt
+done
+
+#populate each bin with KOfam annotation and estimate metabolism
+#make sure to set up a KOfam database (run once):
+#anvi-setup-kegg-kofams --kegg-data-dir /proj/DECOMB/source/KOfam
+sbatch ../DECOMB/metaG/bin_KOfam-annotation.sh
+
+
+# explore the heatmap
+anvi-interactive --manual-mode \
+                 -d $WORKDIR/08_METABOLISM/Bins-completeness-MATRIX.txt \
+                 -t $WORKDIR/08_METABOLISM/Bins-completeness-MATRIX.txt.newick \
+                 -p $WORKDIR/08_METABOLISM/Bins_metabolism_PROFILE.db \
+                 --title "Bins Metabolism Heatmap" \
+                 --server-only -P 5678
+                 
+                 
 
 ########################################################
 #draft loop
