@@ -11,9 +11,12 @@ require(pheatmap)
 require(limma)
 require(ggpubr)
 require(rstatix)
+require(VennDiagram)
+require(pathview)
+
 
 #require(MSqRob)
-#require(pathview)
+#
 #require(tidyverse)
 #require(gplots)
 
@@ -301,11 +304,46 @@ prot_frac_agg <- merge_samples(prot_frac_agg, "Merge", fun = sum)
 sample_data(prot_frac_agg)<- sample_data(meta)
 
 ###################
-#Generate PCA plot
+#Barplots
 ###################
 #conduct NSAF transformation
 prot_nsaf<- add_nsaf(prot_frac_agg, "prot_length")
 
+prot_nsaf.long <- psmelt(prot_nsaf)
+
+#remove below 3% ra
+taxa_classes <- unique(prot_nsaf.long$t_genus[!prot_nsaf.long$Abundance<0.001])
+
+prot_nsaf.long$t_genus[prot_nsaf.long$Abundance<0.001] <- "Other taxa"
+
+prot_nsaf.long$t_genus <- factor(prot_nsaf.long$t_genus,
+                                       levels=c(taxa_classes,"Other taxa"))
+
+prot_nsaf.long_sub<- prot_nsaf.long %>%  filter(t_genus %in% c("Pseudoalteromonas", "Alteromonas", "Vibrio", "Synechococcus"))
+
+ggplot(prot_nsaf.long_sub, 
+       aes(x = Sample, y = Abundance,
+           fill = t_genus)) + 
+  facet_grid(Type~Fraction, space= "fixed") +
+  geom_bar(position="stack", stat="identity")+
+  #scale_fill_manual(values = phyla.col )+ 
+  #guides(fill = guide_legend(reverse = FALSE, keywidth = 1, keyheight = 1)) +
+  ylab("Sequence proportions (%) \n")+
+  geom_hline(aes(yintercept=-Inf)) + 
+  geom_vline(aes(xintercept=-Inf)) +
+  geom_vline(aes(xintercept=Inf))+
+  theme_bw()+
+  theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank(), 
+        axis.line = element_line(colour = "black"),axis.text.x = element_text(angle = 90),
+        text=element_text(size=14),legend.position = "bottom", 
+        axis.title.x = element_blank())
+
+
+
+
+###################
+#Generate PCA plot
+###################
 # Do CLR transformation to protein abundances
 prot_nsaf_clr <- microbiome::transform(prot_nsaf, "clr")
 
@@ -393,12 +431,44 @@ volcanoplot(fit, coef = coef.index, highlight = coef.index)
 knitr::kable(topTable(fit, coef = coef.index, p.value=0.1), digits = 2)
 
 #plot heat map of the first 100 enriched proteins
-tab_100 <- topTable(fit, n=200, sort.by = "logFC", coef=coef.index) %>% filter(adj.P.Val<0.1)
-prot_abund_100<- ps_obj_nsaf_metaP_abund[row.names(tab_100),]
-pheatmap(prot_abund_100)
+tab_100 <- topTable(fit, n=Inf, sort.by = "logFC", coef=coef.index) %>% filter(adj.P.Val<0.1)
+
+#extract the abundance of the proteins
+prot_abund_100<- as.data.frame(ps_obj_nsaf_metaP_abund[row.names(tab_100),]) #%>% mutate(gene_callers_id = row.names(tab_100))
+#extract annotations
+prot_meta<- as.data.frame(tax_table(prot_nsaf_clr)[row.names(tab_100),]) #%>% mutate(gene_callers_id = row.names(tab_100))
+
+#plot heatmap
+pheatmap(prot_abund_100, labels_row = prot_meta$t_genus)
+
+pheatmap(prot_abund_100, labels_row = prot_meta$KeggGhostKoala_function)
+
+
+#merge
+prot_abund_100<- merge(prot_abund_100, prot_meta, by = 0)
+
+
+pv.out <- pathview(gene.data = prot_abund_100$KeggGhostKoala_accession, 
+                   pathway.id ="03011 ",
+                   species = "ko", 
+                   keys.align = "y", 
+                   kegg.native = T, both.dirs = TRUE, 
+                   low = "blue", mid = "gray", high = "red", bin = 20)
 
 
 
+
+
+
+
+
+
+
+#calculate how many proteins were identified per taxa
+
+prot_per_taxa<- as.data.frame(tax_table(prot_obj0)) %>% 
+  select(t_genus,t_species, COG20_FUNCTION_function) %>% 
+  group_by(t_genus) %>% summarise(total = n())
 
 
 
@@ -579,20 +649,7 @@ prot_abund_100<- ps_clr_sub[row.names(tab_100),]
 heatmap.2(prot_abund_100, col= bluered(10), scale = "none", margins = c(10, 5))
 
 
-#map KOs of enriched proteins on KEGG maps
-enriched_prot <- topTable(fit, n=Inf, coef=coef.index) %>% filter(adj.P.Val<0.1)
-enriched_prot$gene_callers_id<- as.integer(row.names(enriched_prot))
 
-#merge protein data with annotation and exlude those without KO
-enriched_prot <- left_join(enriched_prot, genes_meta, by ="gene_callers_id") %>% filter(KEGG !="")
-
-
-pv.out <- pathview(gene.data = enriched_prot$KEGG, 
-                   pathway.id ="00190 ",
-                   species = "ko", 
-                   keys.align = "y", 
-                   kegg.native = T, both.dirs = TRUE, 
-                   low = "blue", mid = "gray", high = "red", bin = 20)
 
 
 
