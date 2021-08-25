@@ -94,6 +94,15 @@ join -11 -a1 --header 05_ANVIO/spades-InterPro-merged.txt 05_ANVIO/spades-Hamap-
 
 
 
+################################
+# Bin the metagenome
+################################
+
+mkdir 06_BINS
+
+#run binning using CONCOCT and using Metabat2
+sbatch ../DECOMB/metaG/bin_co-assembly.sh
+
 
 
 
