@@ -13,12 +13,7 @@ require(ggpubr)
 require(rstatix)
 require(VennDiagram)
 require(pathview)
-
-
-#require(MSqRob)
-#
-#require(tidyverse)
-#require(gplots)
+require(DESeq2)
 
 #conduct NSAF transformation
 #https://github.com/moldach/proteomics-spectralCount-normalization/blob/master/nsaf.R
@@ -289,23 +284,6 @@ row.names(meta)<- meta$Group
 sample_data(prot_frac_agg)<- sample_data(meta)
 
 ###################
-#Merge the two runs together
-###################
-# !!!! Read more regarding technical replicates:
-# https://europepmc.org/article/PMC/4208621
-meta<- data.frame(SampleID = sample_names(prot_frac_agg)) %>% 
-  separate(SampleID, into = c("Type","Fraction"), remove =FALSE) %>% 
-  mutate(Type = case_when(grepl("C",SampleID) ==TRUE ~"Control", 
-                          grepl("J",SampleID) ==TRUE ~"Jelly",
-                          grepl("T0",SampleID) ==TRUE ~ "T0"))
-
-row.names(meta)<- meta$SampleID
-
-prot_frac_agg <- merge_samples(prot_frac_agg, "Merge", fun = sum)
-
-sample_data(prot_frac_agg)<- sample_data(meta)
-
-###################
 #Barplots
 ###################
 #conduct NSAF transformation
@@ -319,7 +297,7 @@ taxa_classes <- unique(prot_nsaf.long$t_genus[!prot_nsaf.long$Abundance<0.001])
 prot_nsaf.long$t_genus[prot_nsaf.long$Abundance<0.001] <- "Other taxa"
 
 prot_nsaf.long$t_genus <- factor(prot_nsaf.long$t_genus,
-                                       levels=c(taxa_classes,"Other taxa"))
+                                 levels=c(taxa_classes,"Other taxa"))
 
 prot_nsaf.long_sub<- prot_nsaf.long %>%  filter(t_genus %in% c("Pseudoalteromonas", "Alteromonas", "Vibrio", "Synechococcus"))
 
@@ -346,6 +324,104 @@ ggplot(prot_nsaf.long_sub,
 ###################
 #Generate PCA plot
 ###################
+#stabilize the dataset using gemetric mean 
+# calculate geometric means prior to estimate size factors
+prot_frac_agg.dds <- phyloseq_to_deseq2(prot_frac_agg, ~1)
+prot_frac_agg.dds = estimateSizeFactors(prot_frac_agg.dds)
+prot_frac_agg.dds <- estimateDispersions(prot_frac_agg.dds)
+prot.vst <- getVarianceStabilizedData(prot_frac_agg.dds)
+
+#make sure that the dimensions of the protein table and the DEseq object are matching
+dim(prot.vst)
+dim(otu_table(prot_frac_agg))
+
+
+prot_frac_agg.vst<-prot_frac_agg
+otu_table(prot_frac_agg.vst)<- otu_table(prot.vst, taxa_are_rows = TRUE)
+
+#produce ordination
+ps_obj_pca <- ordinate(prot_frac_agg.vst, method = "RDA", distance = "euclidean")
+ps_obj_pca.df <- plot_ordination(prot_frac_agg.vst, ps_obj_pca, axes = c(1,2,3),justDF = TRUE) 
+
+ps_obj_pca.df$Sample<- gsub("metaP_|ExoP_","",row.names(ps_obj_pca.df))
+
+#extract explained variance
+ps_obj_pca.evals <- 100 * summary(ps_obj_pca)$cont$importance[2, c("PC1","PC2")]
+
+ordination_plot<- ggplot(data = ps_obj_pca.df, aes(x = PC1, y = PC2, shape = Fraction))+
+  geom_point(fill = "black", size = 6,alpha = 0.8) +
+  geom_point(aes(colour = Type), size = 4,alpha = 0.8) +
+  geom_text(aes(x = PC1, y = PC2,label = Sample), 
+            nudge_y= -1,size=4)+
+  labs(x = sprintf("PC1 [%s%%]", round(ps_obj_pca.evals[1], 2)), 
+       y = sprintf("PC2 [%s%%]", round(ps_obj_pca.evals[2], 2)))+
+  theme_bw()+
+  theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank(),
+        axis.line = element_line(colour = "black"),
+        text=element_text(size=14),legend.position = "bottom")
+
+#save the plot
+ggsave(paste0(wd,"/R_figures/PCA_plot.png"), 
+       plot = ordination_plot,
+       units = "cm",
+       width = 15, height = 15, 
+       #scale = 1,
+       dpi = 300)
+
+#test significance of clustering
+df <- as(sample_data(prot_frac_agg.vst), "data.frame")
+d <- phyloseq::distance(prot_frac_agg.vst, "euclidean")
+adonis_all <- adonis2(d ~ Fraction + Type  , df)
+adonis_all
+
+#posthoc to check which ponds are different
+groups <- df[["Type"]]
+mod <- betadisper(d, groups)
+permutest(mod)
+
+#dispersion is different between groups
+plot(mod)
+boxplot(mod)
+mod.HSD <- TukeyHSD(mod)
+mod.HSD
+plot(mod.HSD)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+###################
+#Merge the two runs together
+###################
+# !!!! Read more regarding technical replicates:
+# https://europepmc.org/article/PMC/4208621
+meta<- data.frame(SampleID = sample_names(prot_frac_agg)) %>% 
+  separate(SampleID, into = c("Type","Fraction"), remove =FALSE) %>% 
+  mutate(Type = case_when(grepl("C",SampleID) ==TRUE ~"Control", 
+                          grepl("J",SampleID) ==TRUE ~"Jelly",
+                          grepl("T0",SampleID) ==TRUE ~ "T0"))
+
+row.names(meta)<- meta$SampleID
+
+prot_frac_agg <- merge_samples(prot_frac_agg, "Merge", fun = sum)
+
+sample_data(prot_frac_agg)<- sample_data(meta)
+
+
 # Do CLR transformation to protein abundances
 prot_nsaf_clr <- microbiome::transform(prot_nsaf, "clr")
 
