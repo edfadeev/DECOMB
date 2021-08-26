@@ -89,7 +89,8 @@ for (src in c("COG20_FUNCTION","KeggGhostKoala","GO","Pfam","InterPro", "Hamap")
 genes_meta <- merge(gene_tax_table,tax_table, by ="taxon_id", all.x = TRUE) %>% 
                 merge(gene_annotations_df, by ="gene_callers_id", all = TRUE) %>% 
                     group_by(aa_sequence) %>% 
-                    mutate(prot_length = nchar(aa_sequence))
+                    mutate(prot_length = nchar(aa_sequence)) %>% 
+                      plyr::rename("gene_callers_id"= "gene_caller_id")
 
 #write.csv(genes_meta, "metaP/genes_meta.txt")    
 
@@ -117,7 +118,7 @@ protein_raw <- read.csv(paste(wd,"metaP_analysis/quant-no-groups/DECOMB-consensu
 
 #rename sample columns and filter out low confidence proteins and replace NA with 0
 protein_filt <- protein_raw %>% 
-  dplyr::rename(gene_callers_id = Accession) %>% 
+  dplyr::rename(gene_caller_id = Accession) %>% 
   select_at(vars(!contains("Found"))) %>% 
   rename_with(~gsub("Abundance\\.|\\.Sample","",.), everything()) %>% 
   rename_at(vars(prot_sample$File.ID), ~ prot_sample$Sample.ID) %>% 
@@ -125,17 +126,17 @@ protein_filt <- protein_raw %>%
   mutate_if(is.numeric, funs(replace_na(., 0))) %>% 
   mutate_if(is.numeric,as.integer)
 
- # left_join(gene_annotations[["gene_ids"]], by ="gene_callers_id", all = TRUE) %>% 
+ # left_join(gene_annotations[["gene_ids"]], by ="gene_caller_id", all = TRUE) %>% 
 
 ########################################
 #merge the dataset into a phyloseq object for convenient data management
 ########################################
 #protein counts as otu_table
-protein_counts<- protein_filt %>% select(c("gene_callers_id", prot_sample$Sample.ID))
-protein_counts<- otu_table(data.frame(protein_counts[, prot_sample$Sample.ID], row.names = protein_counts$gene_callers_id), taxa_are_rows = TRUE)
+protein_counts<- protein_filt %>% select(c("gene_caller_id", prot_sample$Sample.ID))
+protein_counts<- otu_table(data.frame(protein_counts[, prot_sample$Sample.ID], row.names = protein_counts$gene_caller_id), taxa_are_rows = TRUE)
 
 #gene ids as taxonomy table
-annotation<- tax_table(as.matrix(data.frame(genes_meta, row.names = genes_meta$gene_callers_id)))
+annotation<- tax_table(as.matrix(data.frame(genes_meta, row.names = genes_meta$gene_caller_id)))
 
 #metadata
 sample_meta <- sample_data(data.frame(prot_sample, row.names =prot_sample$Sample.ID))
@@ -399,7 +400,27 @@ prot_frac_agg_metaP.DEseq <- DESeq(prot_frac_agg_metaP.ddsMat, fitType="local")
 prot_frac_agg_metaP.DEseq.res <- results(prot_frac_agg_metaP.DEseq)
 
 #extract only significant proteins
-prot_frac_agg_metaP.DEseq.res.sig <- prot_frac_agg_metaP.DEseq.res %>%  filter(padj < 0.1)
+prot_frac_agg_metaP.DEseq.res.sig <- as(prot_frac_agg_metaP.DEseq.res, "data.frame") %>%  filter(padj < 0.1)
+
+prot_frac_agg_metaP.DEseq.res.sig <- cbind(as(prot_frac_agg_metaP.DEseq.res.sig, "data.frame"),
+                               as(tax_table(prot_frac_agg_metaP)[rownames(prot_frac_agg_metaP.DEseq.res.sig), ], "matrix"))
+
+
+
+
+###################
+#Import metabolism estimates for the bins
+###################
+modules_info <- read.csv(paste(wd,"metaG_analysis/metaG_anvio/08_METABOLISM/modules_info.txt",sep=""), sep="\t", h= T)
+
+Bins_kofam_hits <- read.csv(paste(wd,"metaG_analysis/metaG_anvio/08_METABOLISM/Bins_kofam_hits.txt",sep=""), sep="\t", h= T)
+
+Bins_modules <- read.csv(paste(wd,"metaG_analysis/metaG_anvio/08_METABOLISM/Bins_modules.txt",sep=""), sep="\t", h= T)
+
+
+#merge the enriched proteins with the bins
+prot_frac_agg_metaP.DEseq.res.sig_Bin<- left_join(prot_frac_agg_metaP.DEseq.res.sig, Bins_kofam_hits, by = "gene_caller_id")
+                                                  
 
 
 
@@ -409,11 +430,7 @@ prot_frac_agg_metaP.DEseq.res.sig <- prot_frac_agg_metaP.DEseq.res %>%  filter(p
 
 
 
-
-
-
-
-
+#####################################################################################################
 ###################
 #Merge the two runs together
 ###################
