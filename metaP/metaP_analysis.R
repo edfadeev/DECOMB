@@ -388,8 +388,18 @@ plot(mod.HSD)
 
 
 
+###################
+#Identify enriched proteins in MetaP
+###################
+prot_frac_agg_metaP<- subset_samples(prot_frac_agg, Type != "T0" & Fraction =="metaP")
+prot_frac_agg_metaP.ddsMat <- phyloseq_to_deseq2(prot_frac_agg_metaP, ~Type)
+prot_frac_agg_metaP.ddsMat = estimateSizeFactors(prot_frac_agg_metaP.ddsMat)
+prot_frac_agg_metaP.ddsMat <- estimateDispersions(prot_frac_agg_metaP.ddsMat)
+prot_frac_agg_metaP.DEseq <- DESeq(prot_frac_agg_metaP.ddsMat, fitType="local")
+prot_frac_agg_metaP.DEseq.res <- results(prot_frac_agg_metaP.DEseq)
 
-
+#extract only significant proteins
+prot_frac_agg_metaP.DEseq.res.sig <- prot_frac_agg_metaP.DEseq.res %>%  filter(padj < 0.1)
 
 
 
