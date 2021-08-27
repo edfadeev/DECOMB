@@ -51,7 +51,6 @@ python /proj/DECOMB/source/GhostKoalaParser/KEGG-to-anvio --KeggDB 05_ANVIO/KO_O
 #import annotation to ANVIO
 anvi-import-functions -c 05_ANVIO/spades.db -i 05_ANVIO/KeggAnnotations-AnviImportable.txt
 
-
 ################################
 #export data for metaP reference
 ################################

@@ -209,11 +209,25 @@ prot_frac_agg_metaP.DEseq.res.sig_Bin<- prot_frac_agg_metaP.DEseq.res.sig %>% pl
   mutate(gene_caller_id = as.integer(gene_caller_id)) %>% 
   left_join(., Bins_kofam_hits, by = "gene_caller_id")
 
-
-prot_frac_agg_metaP.DEseq.res.sig_Bin_84_1<-prot_frac_agg_metaP.DEseq.res.sig_Bin %>% filter(genome_name == "Bin_84_1") 
-
-prot_frac_agg_metaP.DEseq.res.sig_Bin_2_2<-prot_frac_agg_metaP.DEseq.res.sig_Bin %>% filter(genome_name == "Bin_38_1") 
-
-
-
+#see how many enriched proteins were associated with bins
 prot_frac_agg_metaP.DEseq.res.sig_Bin %>% group_by(genome_name) %>% summarize(n())
+
+
+#subset each bins proteins
+prot_frac_agg_metaP.DEseq.res.sig_Bin_P_phenolica<-prot_frac_agg_metaP.DEseq.res.sig_Bin %>% filter(genome_name == "Bin_84_1") 
+
+prot_frac_agg_metaP.DEseq.res.sig_Bin_Vibrio<-prot_frac_agg_metaP.DEseq.res.sig_Bin %>% filter(genome_name == "Bin_38_1") 
+
+prot_frac_agg_metaP.DEseq.res.sig_Bin_Bermanella<-prot_frac_agg_metaP.DEseq.res.sig_Bin %>% filter(genome_name == "Bin_115_1") 
+
+prot_frac_agg_metaP.DEseq.res.sig_Bin_Glaciecola<-prot_frac_agg_metaP.DEseq.res.sig_Bin %>% filter(genome_name == "Bin_115_2") 
+
+prot_frac_agg_metaP.DEseq.res.sig_Bin_Alteromonas<-prot_frac_agg_metaP.DEseq.res.sig_Bin %>% filter(genome_name %in% c("Bin_2_1","Bin_2_2"))
+
+#not assigned to any bin
+prot_frac_agg_metaP.DEseq.res.sig_no_bin<-prot_frac_agg_metaP.DEseq.res.sig_Bin %>% filter(is.na(genome_name) == TRUE) 
+
+
+#split posible annotations into separated rows
+test <- prot_frac_agg_metaP.DEseq.res.sig_no_bin %>% separate_rows(GO_accession, sep = '\\|')
+
