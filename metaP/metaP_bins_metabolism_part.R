@@ -6,19 +6,7 @@ prot_sample <- data.frame(Sample_name = c("C1_MP","C2_MP","C3_MP","J1_MP","J2_MP
                           Type = c(rep("Control",3),rep("Jelly",3),"T0"),
                           Replicate = c(1:3, 1:3, 1), 
                           row.names = c("C1_MP","C2_MP","C3_MP","J1_MP","J2_MP","J3_MP","T0_MP"))
-  
-  Fraction = case_when(grepl("MP",File.Name) == TRUE ~ "metaP", TRUE ~ "ExoP"),
-         Type = case_when(grepl("C",File.Name) ==TRUE ~"Control", 
-                          grepl("J",File.Name) ==TRUE ~"Jelly",
-                          grepl("T0",File.Name) ==TRUE ~ "T0"),
-         Replicate = gsub("_.*","",File.Name),
-         Sample.ID = paste(File.ID, File.Name, Type, Run, sep="_"),
-         Group = as.factor(paste(Replicate,Fraction, Run, sep="_")))  %>% 
-  mutate(Sample.ID = gsub("_200616145603","", Sample.ID),
-         File.Name = gsub("_200616145603","", File.Name)) #correct sample name
-# separate(File.Name, into = c("Sample","Fraction"), sep ="_", remove = FALSE)
-
-#import proteins data
+#import metaP data
 protein_raw <- read.csv(paste(wd,"metaP_analysis/metaP-fractions/DECOMB-frac-metaP-concensus_Proteins.txt", sep=""),sep="\t", h= T)
 
 sampleIDS<- c("F2","F4","F6","F8","F10","F13","F15")
@@ -33,7 +21,6 @@ protein_filt <- protein_raw %>%
   filter(Number.of.PSMs >=2 , Number.of.Unique.Peptides>=1)%>% 
   mutate_if(is.numeric, funs(replace_na(., 0))) %>% 
   mutate_if(is.numeric,as.integer)
-
 
 ########################################
 #merge the dataset into a phyloseq object for convenient data management
@@ -53,6 +40,49 @@ prot_obj0<- phyloseq(protein_counts, annotation, sample_meta)
 
 #remove proteins that were not observed 
 prot_obj0<- prune_taxa(taxa_sums(prot_obj0)>0,prot_obj0)
+
+########################################
+#import exoproteome data
+########################################
+#import sample list of metaproteomes
+exoP_sample <- data.frame(Sample_name = c("C1_exoP","C2_exoP","C3_exoP","J1_exoP","J2_exoP","J3_exoP","T0_exoP"),
+                          Type = c(rep("Control",3),rep("Jelly",3),"T0"),
+                          Replicate = c(1:3, 1:3, 1), 
+                          row.names = c("C1_exoP","C2_exoP","C3_exoP","J1_exoP","J2_exoP","J3_exoP","T0_exoP"))
+#import ExoP data
+exoP_raw <- read.csv(paste(wd,"metaP_analysis/exoP-fractions/DECOMB-frac-exoP-concensus_Proteins.txt", sep=""),sep="\t", h= T)
+
+exoP_sampleIDS<- c("F1","F2","F3","F4","F5","F6","F7")
+
+#rename sample columns and filter out low confidence proteins and replace NA with 0
+exoP_filt <- exoP_raw %>% 
+  dplyr::rename(gene_caller_id = Accession) %>% 
+  select_at(vars(!contains("Found"))) %>% 
+  rename_with(~gsub("Abundance\\.|\\.Sample","",.), everything()) %>% 
+  rename_at(all_of(exoP_sampleIDS), ~ exoP_sample$Sample_name) %>% 
+  filter(Number.of.PSMs >=2 , Number.of.Unique.Peptides>=1)%>% 
+  mutate_if(is.numeric, funs(replace_na(., 0))) %>% 
+  mutate_if(is.numeric,as.integer)
+
+
+########################################
+#merge the dataset into a phyloseq object for convenient data management
+########################################
+#protein counts as otu_table
+exoP_counts<- exoP_filt %>% select(c("gene_caller_id", exoP_sample$Sample_name))
+exoP_counts<- otu_table(data.frame(exoP_counts[, all_of(exoP_sample$Sample_name)], row.names = exoP_counts$gene_caller_id), taxa_are_rows = TRUE)
+
+#gene ids as taxonomy table
+annotation<- tax_table(as.matrix(data.frame(genes_meta, row.names = genes_meta$gene_caller_id)))
+
+#metadata
+exoP_meta <- sample_data(exoP_sample)
+
+#merge into phyloseq object
+exoP_obj0<- phyloseq(exoP_counts, annotation, exoP_meta)
+
+#remove proteins that were not observed 
+exoP_obj0<- prune_taxa(taxa_sums(exoP_obj0)>0,exoP_obj0)
 
 ###################
 #Plot number of proteins per sample
