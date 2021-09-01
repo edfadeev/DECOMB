@@ -52,11 +52,12 @@ all_prot_obj0 <- merge_phyloseq(metaP_obj0, exoP_obj0)
 # number of proteins per sample
 prot_per_sample <- estimate_richness(all_prot_obj0, split = TRUE, measures = "Observed") %>% 
   mutate(Sample_name = row.names(.)) %>% 
-  left_join(sample_data(all_prot_obj0), by = "Sample_name")
+  left_join(sample_data(all_prot_obj0), by = "Sample_name") %>% 
+  separate(Sample_name, into = c("Sample_name","Fraction"), sep ="_")
 
 prot_counts_bar.p<- list()
-for (frac in c("MetaP","ExoP")){
-  sub<- prot_per_sample %>% filter(Fraction ==frac)
+for (frac in c("MP","exoP")){
+  sub<- prot_per_sample %>% dplyr::filter(Fraction ==frac)
   prot_counts_bar.p[[frac]] <- ggplot(sub, aes(x = Sample_name, y = Observed, fill = Type)) + 
     facet_wrap(Fraction~.) +
     geom_col()+
@@ -69,7 +70,7 @@ for (frac in c("MetaP","ExoP")){
           axis.title.x = element_blank(), axis.text.x = element_text(angle=90))
 }
 
-ggarrange(prot_counts_bar.p[["MetaP"]], prot_counts_bar.p[["ExoP"]],
+ggarrange(prot_counts_bar.p[["MP"]], prot_counts_bar.p[["exoP"]],
           ncol = 2, nrow = 1, align = "hv")
 
 
@@ -151,7 +152,8 @@ otu_table(metaP_obj.vst)<- otu_table(prot.vst, taxa_are_rows = TRUE)
 rm(prot.vst, prot_frac_agg.dds)
 
 #produce ordination
-metaP_pca <- ordinate(metaP_obj.vst, method = "RDA", distance = "euclidean")
+metaP_dist <- phyloseq::distance(metaP_obj.vst, method = "euclidean")
+metaP_pca <- ordinate(metaP_obj.vst, method = "RDA",metaP_dist )
 metaP_pca.df <- plot_ordination(metaP_obj.vst, metaP_pca, axes = c(1,2,3),justDF = TRUE) 
 
 #extract explained variance
@@ -240,9 +242,16 @@ plot(mod.HSD)
 
 
 #plot both PCAs
-ggarrange(metaP_ordination_plot, exoP_ordination_plot,
-          ncol = 2, nrow = 1, align = "hv", labels = c("MetaP","ExoP"))
+ggarrange(metaP_ordination_plot, exoP_ordination_plot, rows = 1,
+          cols = 2, align = "hv", labels = c("MetaP","ExoP"))
 
+#save the plot
+ggsave(paste0(wd,"/R_figures/PCAs.pdf"), 
+       plot = last_plot(),
+       units = "cm",
+       width = 30, height = 15, 
+       #scale = 1,
+       dpi = 300)
 
 ###################
 #Identify enriched proteins in MetaP
@@ -266,11 +275,88 @@ metaP.DEseq.res.sig <- cbind(as(metaP.DEseq.res.sig, "data.frame"),
 ###################
 #Import metabolism estimates for the bins
 ###################
-modules_info <- read.csv(paste(wd,"metaG_analysis/metaG_anvio/08_METABOLISM/modules_info.txt",sep=""), sep="\t", h= T)
+modules_info <- read.csv(paste(wd,"metaG_analysis/metaG_anvio/07_METABOLISM/modules_info.txt",sep=""), sep="\t", h= T)
 
-Bins_kofam_hits <- read.csv(paste(wd,"metaG_analysis/metaG_anvio/08_METABOLISM/Bins_kofam_hits.txt",sep=""), sep="\t", h= T)
+Bins_kofam_hits <- read.csv(paste(wd,"metaG_analysis/metaG_anvio/07_METABOLISM/Bins_kofam_hits.txt",sep=""), sep="\t", h= T)
 
-Bins_modules <- read.csv(paste(wd,"metaG_analysis/metaG_anvio/08_METABOLISM/Bins_modules.txt",sep=""), sep="\t", h= T)
+Bins_modules <- read.csv(paste(wd,"metaG_analysis/metaG_anvio/07_METABOLISM/Bins_modules.txt",sep=""), sep="\t", h= T)
+
+
+#merge the identified modules and the genes calls
+Bins_gene_calls_KEGG_modules<-Bins_modules %>% 
+  tidyr::separate_rows(gene_caller_ids_in_module, sep = ',') %>% 
+  dplyr::rename("gene_caller_id" = "gene_caller_ids_in_module") %>% 
+  mutate(gene_caller_id=as.integer(gene_caller_id),
+         genome_name = factor(genome_name, levels = c("Bin_84_1","Bin_76_1","Bin_5_2",
+                                                      "Bin_2_1","Bin_5_3","Bin_38_1","Bin_2_2",
+                                                      "Bin_179_1","Bin_115_2","Bin_115_1","Bin_102_1",
+                                                      "Bin_12_1","Bin_150_1_1"))) %>% 
+  left_join(Bins_kofam_hits_parsed[,c("genome_name","gene_caller_id","contig","kegg_module","ko","ko_definition")],
+            by = c("genome_name","kegg_module","gene_caller_id"))
+
+
+#merge the enriched proteins with the bins
+metaP.DEseq.res.sig <- metaP.DEseq.res.sig  %>%
+  mutate(gene_caller_id = as.integer(gene_caller_id)) %>% 
+  left_join(., Bins_gene_calls_KEGG_modules, by = "gene_caller_id") %>% 
+  select(-c("start","stop", "direction", "call_type", "source","unique_id","version","contig.y"))
+
+
+write.table(metaP.DEseq.res.sig, "metaP/metaP_DEseq_res_sig.txt")
+
+#see how many enriched proteins were associated with bins
+metaP.DEseq.res.sig %>% group_by(genome_name) %>% 
+  dplyr::summarize(num_of_prot= n()) %>% 
+  dplyr::arrange(desc(num_of_prot))
+
+
+#subset each bins proteins and summarize according to KO modules 
+#Bin 84_1 - Pseudoalteromonas phenolica - length 3.92Mbp (C93/R0)
+metaP.DEseq.res.sig_Bin_P_phenolica<-metaP.DEseq.res.sig %>% filter(genome_name == "Bin_84_1") 
+
+
+Bins_gene_calls_KEGG_modules_Bin_84_1<- Bins_gene_calls_KEGG_modules %>% 
+  mutate(gene_caller_id = as.character(gene_caller_id)) %>% 
+  left_join(metaP.DEseq.res.sig, by = "gene_caller_id") %>% 
+  filter(genome_name == "Bin_84_1") 
+
+#export for KEGG website
+Bins_gene_calls_KEGG_modules_Bin_84_1_for_KEGG <- Bins_gene_calls_KEGG_modules_Bin_84_1 %>%  
+  mutate(colour = case_when(log2FoldChange>0 ~"red", 
+                            log2FoldChange<0 ~"blue",
+                            is.na(log2FoldChange)~"orange")) %>% 
+  select("ko","colour")
+  
+write.table(Bins_gene_calls_KEGG_modules_Bin_84_1_for_KEGG, "Bin_84_KEGG.txt",
+            row.names = FALSE,
+            col.names = FALSE,quote = FALSE)
+
+
+
+
+
+
+
+
+
+
+
+metaP.DEseq.res.sig_Bin_84_1<-metaP.DEseq.res.sig %>% filter(genome_name == "Bin_84_1")
+
+Bin_84_1_logFC <- metaP.DEseq.res.sig_Bin_84_1$log2FoldChange
+names(Bin_84_1_logFC)<- metaP.DEseq.res.sig_Bin_84_1$ko
+
+
+pv.out <- pathview(gene.data = Bin_84_1_logFC, 
+                   pathway.id ="01230",
+                   species = "hsa",
+                   kegg.native = T,
+                   keys.align = "y", 
+                   gene.idtype="KEGG",
+                   low = "blue", mid = "gray", high = "#ffa500", bin = 30,
+                   out.suffix = "Bin_84_1")
+
+
 
 
 #explore metabolic capacities
@@ -289,13 +375,6 @@ ggplot(test, aes(x = genome_name, y = total))+
 
 
 
-#merge the enriched proteins with the bins
-metaP.DEseq.res.sig <- metaP.DEseq.res.sig  %>%
-  mutate(gene_caller_id = as.integer(gene_caller_id)) %>% 
-  left_join(., Bins_kofam_hits, by = "gene_caller_id")
-
-#see how many enriched proteins were associated with bins
-metaP.DEseq.res.sig %>% group_by(genome_name) %>% summarize(num_of_prot= n()) %>% arrange(desc(num_of_prot))
 
 
 #subset each bins proteins and summarize according to KO modules 

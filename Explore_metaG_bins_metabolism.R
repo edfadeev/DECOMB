@@ -44,17 +44,21 @@ metaG_contigs_tax<- read.csv(paste(wd,"metaG_analysis/metaG_anvio/05_ANVIO/spade
 ###################
 #Import metabolism estimates for the bins
 ###################
-modules_info <- read.csv(paste(wd,"metaG_analysis/metaG_anvio/08_METABOLISM/modules_info.txt",sep=""), sep="\t", h= T)
+modules_info <- read.csv(paste(wd,"metaG_analysis/metaG_anvio/07_METABOLISM/modules_info.txt",sep=""), sep="\t", h= T)
 
-Bins_kofam_hits <- read.csv(paste(wd,"metaG_analysis/metaG_anvio/08_METABOLISM/Bins_kofam_hits.txt",sep=""), sep="\t", h= T)
+Bins_kofam_hits <- read.csv(paste(wd,"metaG_analysis/metaG_anvio/07_METABOLISM/Bins_kofam_hits.txt",sep=""), sep="\t", h= T)
 
-Bins_modules <- read.csv(paste(wd,"metaG_analysis/metaG_anvio/08_METABOLISM/Bins_modules.txt",sep=""), sep="\t", h= T)
+Bins_modules <- read.csv(paste(wd,"metaG_analysis/metaG_anvio/07_METABOLISM/Bins_modules.txt",sep=""), sep="\t", h= T)
 
 #merge the identified modules and the genes calls
 Bins_gene_calls_KEGG_modules<-Bins_modules %>% 
   separate_rows(gene_caller_ids_in_module, sep = ',') %>% 
   dplyr::rename("gene_caller_id" = "gene_caller_ids_in_module") %>% 
-  mutate(gene_caller_id=as.integer(gene_caller_id)) %>% 
+  mutate(gene_caller_id=as.integer(gene_caller_id),
+         genome_name = factor(genome_name, levels = c("Bin_84_1","Bin_76_1","Bin_5_2",
+                                                         "Bin_2_1","Bin_5_3","Bin_38_1","Bin_2_2",
+                                                         "Bin_179_1","Bin_115_2","Bin_115_1","Bin_102_1",
+                                                         "Bin_12_1","Bin_150_1_1"))) %>% 
   left_join(Bins_kofam_hits_parsed[,c("genome_name","gene_caller_id","contig","kegg_module","ko","ko_definition")],
             by = c("genome_name","kegg_module","gene_caller_id"))
 
@@ -62,7 +66,11 @@ Bins_gene_calls_KEGG_modules<-Bins_modules %>%
 #see how pathways there are in each KEGG category
 ###############################
 Bins_modules_sum<- Bins_modules %>% group_by(genome_name, module_category, module_subcategory) %>% 
-                    filter(module_completeness >0.75) %>% summarize(Total = n())
+                    filter(module_completeness >0.75) %>% summarize(Total = n()) %>% 
+                      mutate(genome_name = factor(genome_name, levels = c("Bin_84_1","Bin_76_1","Bin_5_2",
+                                               "Bin_2_1","Bin_5_3","Bin_38_1","Bin_2_2",
+                                               "Bin_179_1","Bin_115_2","Bin_115_1","Bin_102_1",
+                                               "Bin_12_1","Bin_150_1_1")))
 
 
 color_range <- sample(tol21rainbow, length(unique(Bins_modules_sum$module_subcategory)), replace = TRUE)
