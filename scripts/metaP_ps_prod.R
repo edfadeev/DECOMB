@@ -45,7 +45,7 @@ for (src in c("COG20_FUNCTION","KeggGhostKoala","GO","Pfam","InterPro", "Hamap")
 
 #merge taxonomy and gene ids together and calculate protein length
 genes_meta <- merge(gene_tax_table,tax_table, by ="taxon_id", all.x = TRUE) %>% 
-  select(gene_callers_id, taxon_id, t_genus, t_species) %>% 
+  #select(gene_callers_id, taxon_id, t_genus, t_species) %>% 
   merge(gene_annotations_df, by ="gene_callers_id", all = TRUE) %>% 
   group_by(aa_sequence) %>% 
   mutate(prot_length = nchar(aa_sequence)) %>% 
@@ -128,9 +128,6 @@ exoP_counts<- otu_table(data.frame(exoP_counts[, all_of(exoP_sample$Sample_name)
 
 #gene ids as taxonomy table
 annotation<- tax_table(as.matrix(data.frame(genes_meta, row.names = genes_meta$gene_caller_id)))
-
-#metadata
-exoP_meta <- 
 
 #merge into phyloseq object
 exoP_obj0<- phyloseq(exoP_counts, annotation, sample_data(exoP_sample))

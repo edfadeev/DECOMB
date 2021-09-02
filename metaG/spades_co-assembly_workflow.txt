@@ -77,10 +77,10 @@ sed -n '2,$p' 05_ANVIO/spades-$db-functions-corrected.txt | sort -n -k 1 > 05_AN
 done
 
 #export taxonomy of each gene
-anvi-export-table --table genes_taxonomy -o spades-genes-taxonomy.txt spades.db
+anvi-export-table --table genes_taxonomy -o $WORKDIR/05_ANVIO/spades-genes-taxonomy.txt $WORKDIR/05_ANVIO/spades.db
 
 #export taxonomy table
-anvi-export-table --table taxon_names -o spades-tax-names.txt spades.db
+anvi-export-table --table taxon_names -o $WORKDIR/05_ANVIO/spades-tax-names.txt $WORKDIR/05_ANVIO/spades.db
 
 #merge all data together
 ("COG20_FUNCTION" "KeggGhostKoala" "Pfam"  "GO" "InterPro" "Hamap")
@@ -221,6 +221,13 @@ sed -i 's/ /\t/g' 06_BINS/Selected_bins_tax.txt
 
 anvi-interactive -p $WORKDIR/05_ANVIO/SPAdes/merged_profile/PROFILE.db -c $WORKDIR/05_ANVIO/spades.db -C Selected_bins --server-only -P 5678
 
+
+#check bins completness with checkM
+mkdir $WORKDIR/06_BINS/Selected_bins_summary/Selected_bins_fasta
+
+find in $WORKDIR/06_BINS/Selected_bins_summary/ -type f -name '*.fa' -exec cp '{}' $WORKDIR/06_BINS/Selected_bins_summary/Selected_bins_fasta
+
+sbatch ../DECOMB/metaG/bin_checkM.sh
 
 ################################
 #Metabolic reconstruction of each bin

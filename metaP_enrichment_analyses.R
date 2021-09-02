@@ -91,22 +91,26 @@ prot_nsaf<- add_nsaf(all_prot_obj0, "prot_length")
 prot_nsaf.long <- psmelt(prot_nsaf) %>% 
   separate(Sample_name, sep ="_", into = c("Sample","Fraction"))
 
+#sum up each taxa
+prot_nsaf.class.agg <- prot_nsaf.long %>% group_by(Fraction,Sample, t_order) %>% summarize(Tot.abundance = sum(Abundance))
+
 #remove below 3% ra
-taxa_classes <- unique(prot_nsaf.long$t_genus[!prot_nsaf.long$Abundance<0.001])
+taxa_classes <- sort(as.character(unique(prot_nsaf.class.agg$t_order[!prot_nsaf.class.agg$Tot.abundance<0.01])))
+                  
+prot_nsaf.class.agg$t_order[prot_nsaf.class.agg$Tot.abundance<0.01] <- "Other taxa"
+prot_nsaf.class.agg$t_order[is.na(prot_nsaf.class.agg$t_order)] <- "Other taxa"
 
-prot_nsaf.long$t_genus[prot_nsaf.long$Abundance<0.001] <- "Other taxa"
-
-prot_nsaf.long$t_genus <- factor(prot_nsaf.long$t_genus,
+prot_nsaf.class.agg$t_order <- factor(prot_nsaf.class.agg$t_order,
                                  levels=c(taxa_classes,"Other taxa"))
 
-ggplot(prot_nsaf.long, 
-       aes(x = Sample, y = Abundance,
-           fill = t_genus)) + 
+ggplot(prot_nsaf.class.agg, 
+       aes(x = Sample, y = Tot.abundance,
+           fill = t_order)) + 
   facet_grid(.~Fraction, space= "fixed") +
   geom_bar(position="stack", stat="identity")+
-  #scale_fill_manual(values = phyla.col )+ 
+  scale_fill_manual(values = tol21rainbow)+ 
   #guides(fill = guide_legend(reverse = FALSE, keywidth = 1, keyheight = 1)) +
-  ylab("Sequence proportions (%) \n")+
+  ylab("Protein proportions (>1%) \n")+
   geom_hline(aes(yintercept=-Inf)) + 
   geom_vline(aes(xintercept=-Inf)) +
   geom_vline(aes(xintercept=Inf))+
@@ -116,25 +120,14 @@ ggplot(prot_nsaf.long,
         text=element_text(size=14),legend.position = "bottom", 
         axis.title.x = element_blank())
 
-prot_nsaf.long_sub<- prot_nsaf.long %>%  filter(t_genus %in% c("Pseudoalteromonas", "Alteromonas", "Vibrio", "Synechococcus"))
 
-ggplot(prot_nsaf.long_sub, 
-       aes(x = Sample, y = Abundance,
-           fill = t_genus)) + 
-  facet_grid(.~Fraction, space= "fixed") +
-  geom_bar(position="stack", stat="identity")+
-  #scale_fill_manual(values = phyla.col )+ 
-  #guides(fill = guide_legend(reverse = FALSE, keywidth = 1, keyheight = 1)) +
-  ylab("Sequence proportions (%) \n")+
-  geom_hline(aes(yintercept=-Inf)) + 
-  geom_vline(aes(xintercept=-Inf)) +
-  geom_vline(aes(xintercept=Inf))+
-  theme_bw()+
-  theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank(), 
-        axis.line = element_line(colour = "black"),axis.text.x = element_text(angle = 90),
-        text=element_text(size=14),legend.position = "bottom", 
-        axis.title.x = element_blank())
-
+#save the plot
+ggsave(paste0(wd,"/R_figures/prot_tax_comp.png"), 
+       plot = last_plot(),
+       units = "cm",
+       width = 30, height = 15, 
+       #scale = 1,
+       dpi = 300)
 
 
 ###################
