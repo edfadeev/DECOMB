@@ -1,0 +1,68 @@
+
+#Set up the path to the working directory
+WORKDIR=/proj/DECOMB/analysis/process_metaG/
+cd $WORKDIR
+
+#extract the seqeunces from the bam files
+mkdir $WORKDIR/fastq
+sbatch ../DECOMB/metaG/slurm_jobs/extract_fastq_from_bam.sh
+
+# Simplify the fastq filenames for array jobs
+cd $WORKDIR/fastq/
+mv CDT3KANXX_2#105352_ACATCCGACTGCGGAT.bam.fastq CDT3KANXX_105352.fastq
+mv CDT3KANXX_2#105353_CCGGCTCGGCGGCTTG.bam.fastq CDT3KANXX_105353.fastq
+mv CDT3KANXX_2#105354_GATAATCGGAGTTGAT.bam.fastq CDT3KANXX_105354.fastq
+
+#run quality control
+mkdir $WORKDIR/QC
+sbatch -a 105352-105354 ../DECOMB/metaG/slurm_jobs/fastqc.sh
+
+#quality trim and removal of adapters
+mkdir $WORKDIR/TRIM
+sbatch -a 105352-105354 ../DECOMB/metaG/slurm_jobs/trim_fastp.sh
+
+#kraken2
+mkdir $WORKDIR/kraken2
+
+sbatch -a 105352-105354 ../DECOMB/metaG/slurm_jobs/kraken2.sh
+
+#assemble the metagenomes
+mkdir $WORKDIR/assembly
+
+sbatch -a 105352-105354 ../DECOMB/metaG/slurm_jobs/assembly_spades.sh
+
+#assembly statistics
+mkdir $WORKDIR/quast
+
+#generate silva blast db using the mirrorred silva_databases
+module load ncbiblastplus/2.10.0
+cp /mirror/silva/current/Exports/SILVA_138.1_SSURef_NR99_tax_silva.fasta.gz $WORKDIR/quast
+gzip -d ./quast/SILVA_138.1_SSURef_NR99_tax_silva.fasta.gz
+
+makeblastdb -in ./quast/SILVA_138.1_SSURef_NR99_tax_silva.fasta -out ./quast/silva_db/ -dbtype nucl
+
+mv ./quast/silva_db.* ./quast/silva_db/
+
+module unload ncbiblastplus/2.10.0
+
+#run quast
+sbatch -a 105352-105354 ../DECOMB/metaG/slurm_jobs/assembly_stats.sh
+
+
+#activate conda Anvio env.
+conda activate /apps/anvio/7/
+
+
+#rename contigs to comply  with Anvio and map reads on the scaffold
+mkdir mapping
+sbatch -a 105352-105354 ../DECOMB/metaG/slurm_jobs/map_reads_bbmap.sh
+
+#import the metagenomes into Anvio and annotate them
+mkdir anvio
+sbatch -a 105352-105354 ../DECOMB/metaG/slurm_jobs/anvio-import-metagenome.sh
+
+#assign taxonomy to metagenomes
+sbatch -a 105352-105354 ../DECOMB/metaG/slurm_jobs/anvio-add-taxonomy.sh
+
+#generate merge database of contigs from all 3 metagenomes
+mkdir anvio/merged_metaG

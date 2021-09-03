@@ -1,0 +1,29 @@
+#add KEGG annotation to genes (according to https://merenlab.org/2018/01/17/importing-ghostkoala-annotations/)
+sed 's/>/>genecall_/' 05_ANVIO/$WORKDIR/05_ANVIO/spades-AA-sequences.fa > 05_ANVIO/$WORKDIR/05_ANVIO/spades-AA-sequences_GhostKOALA.fa
+
+#manually upload the output to GhostKOALA 
+#download the output files user_ko.txt and user.out.top.gz to 05_ANVIO
+
+#download and parse the KEGG database orthologies 
+wget 'https://www.genome.jp/kegg-bin/download_htext?htext=ko00001&format=htext&filedir=' -O ko00001.keg
+
+cd 05_ANVIO
+
+kegfile="ko00001.keg"
+
+while read -r prefix content
+do
+case "$prefix" in A) col1="$content";; \
+B) col2="$content" ;; \
+C) col3="$content";; \
+D) echo -e "$col1\t$col2\t$col3\t$content";;
+esac 
+done < <(sed '/^[#!+]/d;s/<[^>]*>//g;s/^./& /' < "$kegfile") > KO_Orthology_ko00001.txt
+
+cd ..
+
+#parse GhostKoala results
+python /proj/DECOMB/source/GhostKoalaParser/KEGG-to-anvio --KeggDB 05_ANVIO/KO_Orthology_ko00001.txt -i 05_ANVIO/user_ko.txt -o 05_ANVIO/KeggAnnotations-AnviImportable.txt
+
+#import annotation to ANVIO
+anvi-import-functions -c 05_ANVIO/spades.db -i 05_ANVIO/KeggAnnotations-AnviImportable.txt

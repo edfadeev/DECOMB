@@ -21,41 +21,13 @@ require(phyloseq)
 ########################################
 #import taxonomy and annotation of each gene in the reference metagenome
 ########################################
-#taxonomy table
-tax_table <- read.csv(paste(wd,"metaG_analysis/metaG_anvio/05_ANVIO/spades_merged/spades-tax-names.txt",sep=""),
-                      sep="\t", h= T)
-#taxonomic classification
-gene_tax_table <- read.csv(paste(wd,"metaG_analysis/metaG_anvio/05_ANVIO/spades_merged/spades-genes-taxonomy.txt",sep=""),
-                           sep="\t", h= T)
-
-#gene annotation list by sources
-gene_ids <- read.csv(paste(wd,"metaG_analysis/metaG_anvio/05_ANVIO/spades_merged/spades-gene-calls.txt",sep=""),
-                     sep="\t", h= T)
-gene_annotations_df<- gene_ids
-
-for (src in c("COG20_FUNCTION","KeggGhostKoala","GO","Pfam","InterPro", "Hamap")){
-  gene_annotations <- read.csv(paste(wd,"metaG_analysis/metaG_anvio/05_ANVIO/spades_merged/spades-",src,"-functions.txt",sep=""),
-                               sep="\t", h= T)%>% select(gene_callers_id, accession, function.) %>% 
-    group_by(gene_callers_id)%>%
-    summarise_each(funs(paste(unique(.), collapse='|')),matches('^\\D+$')) %>% 
-    plyr::rename(replace= c("accession"=paste(src, "accession", sep ="_"), "function."=paste(src, "function", sep ="_")))
-  
-  gene_annotations_df<- merge(gene_annotations_df,gene_annotations, by ="gene_callers_id", all = TRUE )
-}
-
-#merge taxonomy and gene ids together and calculate protein length
-genes_meta <- merge(gene_tax_table,tax_table, by ="taxon_id", all.x = TRUE) %>% 
-  #select(gene_callers_id, taxon_id, t_genus, t_species) %>% 
-  merge(gene_annotations_df, by ="gene_callers_id", all = TRUE) %>% 
-  group_by(aa_sequence) %>% 
-  mutate(prot_length = nchar(aa_sequence)) %>% 
-  dplyr::rename(gene_caller_id= gene_callers_id)
-
+metaG_annotations<- read.csv("data/metaG_full_annotations.txt",
+                             row.names = 1)
 
 ########################################
 #import metaproteome data
 ########################################
-#import sample list of metaproteomes
+#generate sample list of metaproteomes
 metaP_samples <- data.frame(Sample_name = c("C1_MP","C2_MP","C3_MP","J1_MP","J2_MP","J3_MP","T0_MP"),
                             Sample_PD_IDs= c("F2","F4","F6","F8","F10","F13","F15"),
                             Type = c(rep("Control",3),rep("Jelly",3),"T0"),
@@ -84,7 +56,7 @@ metaP_prot_counts<- metaP_filt %>% select(c("gene_caller_id", metaP_samples$Samp
 metaP_prot_counts<- otu_table(data.frame(metaP_prot_counts[, all_of(metaP_samples$Sample_name)], row.names = metaP_prot_counts$gene_caller_id), taxa_are_rows = TRUE)
 
 #gene ids as taxonomy table
-metaP_annotation<- tax_table(as.matrix(data.frame(genes_meta, row.names = genes_meta$gene_caller_id)))
+metaP_annotation<- tax_table(as.matrix(data.frame(metaG_annotations, row.names = metaG_annotations$gene_caller_id)))
 
 #merge into phyloseq object
 metaP_obj0<- phyloseq(metaP_prot_counts, metaP_annotation, sample_data(metaP_samples))
@@ -98,7 +70,7 @@ saveRDS(metaP_obj0, "metaP/metaP_ps_raw.rds")
 ########################################
 #import exoproteome data
 ########################################
-#import sample list of metaproteomes
+#generate sample list of exoproteomes
 exoP_sample <- data.frame(Sample_name = c("C1_exoP","C2_exoP","C3_exoP","J1_exoP","J2_exoP","J3_exoP","T0_exoP"),
                           Sample_PD_IDs = c("F1","F2","F3","F4","F5","F6","F7"),
                           Type = c(rep("Control",3),rep("Jelly",3),"T0"),
@@ -127,7 +99,7 @@ exoP_counts<- exoP_filt %>% select(c("gene_caller_id", exoP_sample$Sample_name))
 exoP_counts<- otu_table(data.frame(exoP_counts[, all_of(exoP_sample$Sample_name)], row.names = exoP_counts$gene_caller_id), taxa_are_rows = TRUE)
 
 #gene ids as taxonomy table
-annotation<- tax_table(as.matrix(data.frame(genes_meta, row.names = genes_meta$gene_caller_id)))
+annotation<- tax_table(as.matrix(data.frame(metaG_annotations, row.names = metaG_annotations$gene_caller_id)))
 
 #merge into phyloseq object
 exoP_obj0<- phyloseq(exoP_counts, annotation, sample_data(exoP_sample))
