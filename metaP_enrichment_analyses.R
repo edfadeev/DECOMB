@@ -57,14 +57,23 @@ metaP_sig_prot_by_module <- merge(metaP.DEseq.res.sig, metaG_kofam_hits, by ="ge
   merge(metaG_KEGG_modules, by = "kegg_module")
 
 
-ggplot(metaP_sig_prot_by_module, aes(x=module_name, y=log2FoldChange ))+
-  geom_point()+
-  coord_flip()
+enriched_prot.p <- ggplot(metaP_sig_prot_by_module, aes(x=module_name, y=log2FoldChange, 
+                                     colour= module_category))+
+  geom_point(size = 2)+
+  scale_color_manual(values = tol21rainbow)+
+  coord_flip()+
+  theme_bw()+
+  theme(text=element_text(size=14),legend.position = "right")
 
 
 
-
-
+#save the plot
+ggsave(paste0(wd,"/R_figures/enriched_prot.pdf"), 
+       plot = enriched_prot.p,
+       units = "cm",
+       width = 30, height = 30, 
+       #scale = 1,
+       dpi = 300)
 
 
 ###################
@@ -132,6 +141,24 @@ write.table(Bins_gene_calls_KEGG_modules_Bin_84_1_for_KEGG, "Bin_84_KEGG.txt",
 
 
 
+###################
+#Identify enriched proteins in MetaP
+###################
+metaP_obj0_no_T0<- subset_samples(exoP_obj0, Type != "T0")
+#remove proteins that were not observed 
+metaP_obj0_no_T0<- prune_taxa(taxa_sums(metaP_obj0_no_T0)>0,metaP_obj0_no_T0)
+
+metaP_obj0.ddsMat <- phyloseq_to_deseq2(metaP_obj0_no_T0, ~Type)
+metaP_obj0.ddsMat = estimateSizeFactors(metaP_obj0.ddsMat)
+metaP_obj0.ddsMat <- estimateDispersions(metaP_obj0.ddsMat)
+metaP.DEseq <- DESeq(metaP_obj0.ddsMat, fitType="local")
+metaP.DEseq.res <- results(metaP.DEseq)
+
+#extract only significant proteins
+metaP.DEseq.res.sig <- as(metaP.DEseq.res, "data.frame") %>%  filter(padj < 0.1)
+
+metaP.DEseq.res.sig <- cbind(as(metaP.DEseq.res.sig, "data.frame"),
+                             as(tax_table(exoP_obj0)[rownames(metaP.DEseq.res.sig), ], "matrix"))
 
 
 
