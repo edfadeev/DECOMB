@@ -57,7 +57,7 @@ done
 
 mkdir 06_BINS
 
-sbatch ../DECOMB/metaG/bin_co-assembly.sh
+sbatch ../DECOMB/metaG/binning.sh
 
 #explore bins of CONCOCT (they were better than the ones got out of metabat)
 anvi-interactive -p $WORKDIR/05_ANVIO/SPAdes/merged_profile/PROFILE.db -c $WORKDIR/05_ANVIO/spades.db -C CONCOCT --server-only -P 5678
@@ -197,7 +197,7 @@ done
 #populate each bin with KOfam annotation and estimate metabolism
 #make sure to set up a KOfam database (run once):
 #anvi-setup-kegg-kofams --kegg-data-dir /proj/DECOMB/source/KOfam
-sbatch ../DECOMB/metaG/bin_KOfam-annotation.sh
+sbatch ../DECOMB/metaG/Bin_KEGG_modules.sh
 
 # explore the produces metabolic heatmap
 anvi-interactive --manual-mode \
