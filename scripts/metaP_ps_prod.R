@@ -24,6 +24,12 @@ require(phyloseq)
 metaG_annotations<- read.csv("data/metaG_full_annotations.txt",
                              row.names = 1)
 
+#filter out proteins that had no taxonomic or functional annotation
+metaG_annotations <- metaG_annotations %>%
+  select(taxon_id, COG20_FUNCTION_accession, GO_accession, 
+         Pfam_accession,InterPro_accession, Hamap_accession) %>% 
+  filter(if_any(everything(), ~ !is.na(.)))
+
 ########################################
 #import metaproteome data
 ########################################
@@ -65,7 +71,7 @@ metaP_obj0<- phyloseq(metaP_prot_counts, metaP_annotation, sample_data(metaP_sam
 metaP_obj0<- prune_taxa(taxa_sums(metaP_obj0)>0,metaP_obj0)
 
 #save metaproteome phyloseq
-saveRDS(metaP_obj0, "metaP/metaP_ps_raw.rds")
+saveRDS(metaP_obj0, "data/metaP_ps_raw.rds")
 
 ########################################
 #import exoproteome data
@@ -108,7 +114,7 @@ exoP_obj0<- phyloseq(exoP_counts, annotation, sample_data(exoP_sample))
 exoP_obj0<- prune_taxa(taxa_sums(exoP_obj0)>0,exoP_obj0)
 
 #save metaproteome phyloseq
-saveRDS(exoP_obj0, "metaP/exoP_ps_raw.rds")
+saveRDS(exoP_obj0, "data/exoP_ps_raw.rds")
 
 #clean workspace
 rm(list = ls())
