@@ -22,27 +22,83 @@ require(DESeq2)
 require(vegan)
 
 #load metaproteome phyloseq object
-metaP_obj0<- readRDS("metaP/metaP_ps_raw.rds")
-exoP_obj0<- readRDS("metaP/exoP_ps_raw.rds")
+metaP_obj0<- readRDS("data/metaP_ps_raw.rds")
+exoP_obj0<- readRDS("data/exoP_ps_raw.rds")
 
 ###################
 #Identify enriched proteins in MetaP
 ###################
+#run DESeq2
+metaP_obj0.ddsMat <- phyloseq_to_deseq2(metaP_obj0, ~Type)
+metaP.DEseq <- DESeq(metaP_obj0.ddsMat, fitType="local")
+
+#conduct variance transformation
+metaP.DEseq.vsd <- vst(metaP_obj0.ddsMat,  fitType="local", blind=FALSE)
+
+#select only the top 50 proteins and produce dataframe with metadata
+select_prot <- order(rowMeans(counts(metaP.DEseq, normalized=TRUE)),
+                decreasing=TRUE)[1:50]
+meta_df <- as.data.frame(colData(metaP.DEseq)[,c("Replicate","Type")])
+
+#produce and save a heatmap
+pheatmap(assay(metaP.DEseq.vsd)[select_prot,], cluster_rows=FALSE, show_rownames=FALSE,
+         cluster_cols=TRUE, annotation_col=meta_df,
+         main = "Top 50 proteins", filename = paste0(wd, "R_figures/metaP_heatmap.pdf"))
+
+
+
+
+
+
 metaP_obj0_no_T0<- subset_samples(metaP_obj0, Type != "T0")
 #remove proteins that were not observed 
 metaP_obj0_no_T0<- prune_taxa(taxa_sums(metaP_obj0_no_T0)>0,metaP_obj0_no_T0)
 
-metaP_obj0.ddsMat <- phyloseq_to_deseq2(metaP_obj0_no_T0, ~Type)
-metaP_obj0.ddsMat = estimateSizeFactors(metaP_obj0.ddsMat)
-metaP_obj0.ddsMat <- estimateDispersions(metaP_obj0.ddsMat)
-metaP.DEseq <- DESeq(metaP_obj0.ddsMat, fitType="local")
-metaP.DEseq.res <- results(metaP.DEseq)
+
+
+
+
+
+
+
+
+sampleDists <- dist(t(assay(vsd)))
+
+
+library("RColorBrewer")
+sampleDistMatrix <- as.matrix(sampleDists)
+rownames(sampleDistMatrix) <- vsd$Type
+colnames(sampleDistMatrix) <- NULL
+colors <- colorRampPalette( rev(brewer.pal(9, "Blues")) )(255)
+pheatmap(sampleDistMatrix,
+         clustering_distance_rows=sampleDists,
+         clustering_distance_cols=sampleDists,
+         col=colors)
+
+
+
+plotPCA(vsd, intgroup=c("Type"),  returnData=TRUE)
+
+
+
 
 #extract only significant proteins
 metaP.DEseq.res.sig <- as(metaP.DEseq.res, "data.frame") %>%  filter(padj < 0.1)
 
 metaP.DEseq.res.sig <- cbind(as(metaP.DEseq.res.sig, "data.frame"),
-                                           as(tax_table(metaP_obj0)[rownames(metaP.DEseq.res.sig), ], "matrix"))
+                             as(tax_table(metaP_obj0)[rownames(metaP.DEseq.res.sig), ], "matrix"))
+
+
+
+metaP_obj0_sub <- prune_taxa(rownames(log2FoldChange_proteins), metaP_obj.vst)
+
+#plot heatmap
+pheatmap(otu_table(metaP_obj0_sub), labels_row = tax_table(metaP_obj0_sub)[,"Class"])
+
+
+
+
+metaP.DEseq.res <- results(metaP.DEseq, name = "Type_Jelly_vs_Control")
 
 ###################
 #Import KEGG modules estimates for each gene

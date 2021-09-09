@@ -116,6 +116,7 @@ exoP_obj0<- prune_taxa(taxa_sums(exoP_obj0)>0,exoP_obj0)
 #save metaproteome phyloseq
 saveRDS(exoP_obj0, "data/exoP_ps_raw.rds")
 
-#clean workspace
+#print session info and clean the workspace
+sessionInfo()
 rm(list = ls())
 gc()
