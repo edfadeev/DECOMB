@@ -127,7 +127,7 @@ metaP.DEseq.res_KOfam <- metaP.DEseq.res.sig %>%
                           log2FoldChange<0 ~ "Control"))
 
 
-#combine with the difnitions of the modules and parse according to the different modules
+#combine with the definitions of the modules and parse according to the different modules
 #(that means that each protein will appear in a new row for each module!)
 metaG_KEGG_modules <- read.csv(paste(wd,"metaG_analysis/metaG_anvio/05_ANVIO/spades-Kofam_modules.txt",sep=""), sep="\t", h= T)
 
@@ -140,6 +140,3 @@ metaP.DEseq.res_KOfam_by_module <- metaP.DEseq.res_KOfam %>%
 enr_prot_per_KEGG_module<- metaP.DEseq.res_KOfam_by_module %>% 
   group_by(Type, module_name,module_class, module_category, module_subcategory, module_definition) %>% 
   summarize(Prot.n = n())
-
-
-
