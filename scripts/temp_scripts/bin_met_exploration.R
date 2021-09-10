@@ -30,7 +30,7 @@ Bins.DEseq.enr.prot_by_module <- Bins.DEseq.enr.prot %>%
 
 
 Bins.DEseq.enr.prot_by_module_bin<-Bins.DEseq.enr.prot_by_module %>% 
-                      filter(genome_name == "Bin_84_1") %>% 
+                      filter(genome_name == "Bin_115_2") %>% 
                         mutate(color = case_when(Type =="Jelly" ~ "red",
                                                  Type =="Control" ~ "blue",
                                                  Type =="gene" ~ "yellow")) %>% 

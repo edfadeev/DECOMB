@@ -98,14 +98,14 @@ pheatmap(otu_table(metaP_obj0_sub), labels_row = tax_table(metaP_obj0_sub)[,"Cla
 
 
 
-metaP.DEseq.res <- results(metaP.DEseq, name = "Type_Jelly_vs_Control")
+
 
 ###################
 #Import KEGG modules estimates for each gene
 ###################
-metaG_kofam_hits <- read.csv(paste(wd,"metaG_analysis/metaG_anvio/05_ANVIO/spades_kofam_hits.txt",sep=""), sep="\t", h= T)
+metaG_kofam_hits <- read.csv(paste(wd,"metaG_analysis/metaG_anvio/05_ANVIO/spades_Kofam_hits.txt",sep=""), sep="\t", h= T)
 
-metaG_KEGG_modules <- read.csv(paste(wd,"metaG_analysis/metaG_anvio/05_ANVIO/spades_modules.txt",sep=""), sep="\t", h= T)
+metaG_KEGG_modules <- read.csv(paste(wd,"metaG_analysis/metaG_anvio/05_ANVIO/spades_Kofam_modules.txt",sep=""), sep="\t", h= T)
 
 metaP_sig_prot_by_module <- merge(metaP.DEseq.res.sig, metaG_kofam_hits, by ="gene_caller_id") %>%
   tidyr::separate_rows(modules_with_ko, sep = ',') %>% 
