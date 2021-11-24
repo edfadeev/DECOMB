@@ -1,4 +1,3 @@
-<<<<<<< HEAD:metagenome_analysis_workflow/spades_co-assembly_workflow.sh
 #login with port forwarding
 ssh -L 5678:localhost:5678 slurm
 
@@ -53,12 +52,36 @@ sed -n '2,$p' 05_ANVIO/spades-$db-functions-corrected.txt | sort -n -k 1 > 05_AN
 done
 
 ################################
-#Produce bins
+#Produce automatic bins
 ################################
 
 mkdir 06_BINS
 
 sbatch ../DECOMB/metaG/bin_co-assembly.sh
+
+################################
+#combine bins using DAS Tool
+################################
+#export list of contigs per bin from each binner
+anvi-export-collection -C CONCOCT \
+                        -p $WORKDIR/05_ANVIO/SPAdes/merged_profile/PROFILE.db \
+                        -o $WORKDIR/06_BINS/spades-concoct
+
+anvi-export-collection -C metabat2 \
+                        -p $WORKDIR/05_ANVIO/SPAdes/merged_profile/PROFILE.db \
+                        -o $WORKDIR/06_BINS/spades-metabat2
+                        
+#extract only the contig names without the splits                         
+sed 's/_split_[0-9]*//g' 06_BINS/spades_concoct.txt| uniq -u - > 06_BINS/spades_concoct_contig.txt
+sed 's/_split_[0-9]*//g' 06_BINS/spades_metabat2.txt| uniq -u - > 06_BINS/spades_metabat2_contig.txt
+
+#generate protein fasta file for DAS Tool
+awk '{print ">"$2"_"$1"\n"$10}' $WORKDIR/05_ANVIO/spades-gene-calls-sorted.txt > $WORKDIR/05_ANVIO/spades-AAs-for-binning.fasta
+
+#combine bins using DAS Tool
+sbatch ../DECOMB/metaG/combined_binning.sh
+
+
 
 #explore bins of CONCOCT (they were better than the ones got out of metabat)
 anvi-interactive -p $WORKDIR/05_ANVIO/SPAdes/merged_profile/PROFILE.db -c $WORKDIR/05_ANVIO/spades.db -C CONCOCT --server-only -P 5678
@@ -207,8 +230,6 @@ anvi-interactive --manual-mode \
                  -p $WORKDIR/07_METABOLISM/Bins_metabolism_PROFILE.db \
                  --title "Bins Metabolism Heatmap" \
                  --server-only -P 5678
-                 
-
 
 #produce table of the different groups of bins
 JELLY_BINS=("Bin_2_1" "Bin_2_2" "Bin_134_1" "Bin_134_2" "Bin_5_2" "Bin_5_3" "Bin_84_1" "Bin_76_1" "Bin_38_1" "Bin_102_1") 
@@ -232,31 +253,3 @@ module load R/4.0.2
 anvi-compute-functional-enrichment -M $WORKDIR/07_METABOLISM/Bins_modules.txt \
                                    -G $WORKDIR/07_METABOLISM/bin-groups.txt \
                                    -o $WORKDIR/07_METABOLISM/Bin_enriched_modules.txt
-
-
-
-
-
-
-#generate protein fasta files for each selected bin
-mkdir $WORKDIR/07_REFINED/genes_and_prot
-
-BINS=("Bin_84_1" "Bin_76_1" "Bin_5_2" "Bin_2_1" "Bin_5_3" "Bin_38_1" "Bin_2_2" "Bin_179_1" "Bin_115_2" "Bin_115_1" "Bin_102_1" "Bin_12_1" "Bin_150_1_1")
-
-for bin in ${BINS[@]}; do
-anvi-get-sequences-for-gene-calls -c $WORKDIR/07_REFINED/$bin/CONTIGS.db --report-extended-deflines --get-aa-sequences -o $WORKDIR/07_REFINED/genes_and_prot/DECOMB-${bin}_prot.fasta
-
-#export also the DNA sequences
-anvi-get-sequences-for-gene-calls -c $WORKDIR/07_REFINED/$bin/CONTIGS.db --report-extended-deflines -o $WORKDIR/07_REFINED/genes_and_prot/DECOMB-${bin}_genes.fasta
-
-done
-
-
-
-
-#test for enriched metabolic modules between bins
-#list of bins enriched in jelly samples
-BINS_J=("Bin_84_1" "Bin_76_1" "Bin_2_1" "Bin_2_2" "Bin_5_2" "Bin_5_3" "Bin_38_1"   "Bin_102_1" "Bin_12_1" "Bin_150_1_1")
-
-#list of bins enriched in control samples
-BINS_C=("Bin_179_1" "Bin_115_2" "Bin_115_1"
