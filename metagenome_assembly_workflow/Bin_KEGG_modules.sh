@@ -11,19 +11,17 @@
 WORKDIR=/proj/DECOMB/analysis/metaG_anvio
 cd $WORKDIR
 
-
-BINS=("Bin_2_1" "Bin_2_2" "Bin_134_1" "Bin_134_2" "Bin_5_2" "Bin_5_3" "Bin_84_1" "Bin_76_1" "Bin_38_1" "Bin_102_1" "Bin_179_1" "Bin_115_2" "Bin_115_1" "Bin_12_1")
+readarray -t BINS < $WORKDIR/06_BINS/selected-bins.csv
 
 for bin in ${BINS[@]}; do
 
 anvi-run-kegg-kofams -c $WORKDIR/06_BINS/REFINED/$bin/CONTIGS.db \
 --kegg-data-dir /proj/DECOMB/source/KOfam -T 20 \
 --just-do-it
-
 done
 
 #produce metabolic metrices for visualization
-anvi-estimate-metabolism -e $WORKDIR/07_METABOLISM/selected-bins.txt \
+anvi-estimate-metabolism -e $WORKDIR/07_METABOLISM/selected-bins-collection.txt \
                          -O $WORKDIR/07_METABOLISM/Bins \
                          --matrix-format --kegg-data-dir /proj/DECOMB/source/KOfam
 
@@ -59,7 +57,7 @@ sqlite3 $ANVIO_MODULES_DB "select module,data_value from kegg_modules where data
     tr '|' '\t' > $WORKDIR/07_METABOLISM/module_names.txt
 
 # join everything
-paste $WORKDIR/07_METABOLISM/module_class.txt <(cut -f 2 $WORKDIR/08_METABOLISM/module_names.txt ) >> $WORKDIR/07_METABOLISM/modules_info.txt
+paste $WORKDIR/07_METABOLISM/module_class.txt <(cut -f 2 $WORKDIR/07_METABOLISM/module_names.txt ) >> $WORKDIR/07_METABOLISM/modules_info.txt
 
 # empty the trash bin:
 rm $WORKDIR/07_METABOLISM/module_names.txt $WORKDIR/07_METABOLISM/module_class.txt
@@ -68,7 +66,7 @@ rm $WORKDIR/07_METABOLISM/module_names.txt $WORKDIR/07_METABOLISM/module_class.t
 anvi-import-misc-data $WORKDIR/07_METABOLISM/modules_info.txt -p $WORKDIR/07_METABOLISM/Bins_metabolism_PROFILE.db -t items
 
 #produce tables with KO hits and modules
-anvi-estimate-metabolism -e $WORKDIR/07_METABOLISM/selected-bins.txt \
+anvi-estimate-metabolism -e $WORKDIR/07_METABOLISM/selected-bins-collection.txt\
                          -O $WORKDIR/07_METABOLISM/Bins \
                          --kegg-data-dir /proj/DECOMB/source/KOfam \
                          --kegg-output-modes kofam_hits,modules

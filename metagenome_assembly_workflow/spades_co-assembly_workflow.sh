@@ -4,7 +4,10 @@ ssh -L 5678:localhost:5678 slurm
 #workflow for co-assembly of metagenomes using SPAdes and annotation using Anvio
 conda activate /apps/anvio/7
 
-#Set up the path to the working directory
+#Set up the path to the working directory and the scripts directory
+DECOMB_git=/proj/DECOMB/DECOMB_git
+
+
 WORKDIR=/proj/DECOMB/analysis/metaG_anvio/
 cd $WORKDIR
 
@@ -119,26 +122,11 @@ anvi-refine -p $WORKDIR/05_ANVIO/SPAdes/merged_profile/PROFILE.db -c $WORKDIR/05
 #summarize and export them for further analysis
 mkdir $WORKDIR/06_BINS/REFINED
 
-#export the bins collection
-anvi-export-collection -p $WORKDIR/05_ANVIO/SPAdes/merged_profile/PROFILE.db -C CONCOCT -O $WORKDIR/06_BINS/concoct_refined_bins_list
-
-#subset the bins of interest and create new collection
-BINS=("Bin_2_1" "Bin_2_2" "Bin_134_1" "Bin_134_2" "Bin_5_2" "Bin_5_3" "Bin_84_1" "Bin_76_1" "Bin_38_1" "Bin_102_1" "Bin_179_1" "Bin_115_2" "Bin_115_1" "Bin_12_1")
-for bin in ${BINS[@]}; do 
-echo $bin | grep -w -F -f - $WORKDIR/06_BINS/concoct_refined_bins_list.txt >> $WORKDIR/06_BINS/collection_of_interest.txt
-done
-
-anvi-import-collection -C Selected_bins \
-                        -p $WORKDIR/05_ANVIO/SPAdes/merged_profile/PROFILE.db \
-                        -c $WORKDIR/05_ANVIO/spades.db \
-                        $WORKDIR/06_BINS/collection_of_interest.txt
-
 #produce summary of the selected bins
-sbatch ../DECOMB/metaG/sum_refined_bins.sh
+sbatch $DECOMB_git/metagenome_assembly_workflow/sum_refined_bins.sh
 
 
 #explore the selected bins collection
-
 #add taxonomy to each bin for visualization (still work in progress)
 awk '{print $1,$11,$13}' 06_BINS/Selected_bins_summary/bins_summary.txt > 06_BINS/Selected_bins_tax.txt
 sed -i "1s/.*/item_name categorical_1 text_layer_01/" 06_BINS/Selected_bins_tax.txt
@@ -152,7 +140,7 @@ mkdir $WORKDIR/06_BINS/Selected_bins_summary/Selected_bins_fasta
 
 find in $WORKDIR/06_BINS/Selected_bins_summary/ -type f -name '*.fa' -exec cp '{}' $WORKDIR/06_BINS/Selected_bins_summary/Selected_bins_fasta
 
-sbatch ../DECOMB/metaG/bin_checkM.sh
+sbatch $DECOMB_git/metagenome_assembly_workflow/bin_checkM.sh
 
 ################################
 #Metabolic reconstruction of each bin
@@ -160,15 +148,19 @@ sbatch ../DECOMB/metaG/bin_checkM.sh
 mkdir 07_METABOLISM
 
 #list of bins and their locations
-echo -e "name\tcontigs_db_path" > $WORKDIR/07_METABOLISM/selected-bins.txt
+#list of selected bins was manually produced and saved into:
+# 'selected-bins.csv'
+readarray -t BINS < $WORKDIR/06_BINS/selected-bins.csv
+
+echo -e "name\tcontigs_db_path" > $WORKDIR/07_METABOLISM/selected-bins-collection.txt
 for bin in ${BINS[@]}; do 
-echo -e "${bin}\t${WORKDIR}/06_BINS/REFINED/${bin}/CONTIGS.db" >> $WORKDIR/07_METABOLISM/selected-bins.txt
+echo -e "${bin}\t${WORKDIR}/06_BINS/REFINED/${bin}/CONTIGS.db" >> $WORKDIR/07_METABOLISM/selected-bins-collection.txt
 done
 
 #populate each bin with KOfam annotation and estimate metabolism
 #make sure to set up a KOfam database (run once):
 #anvi-setup-kegg-kofams --kegg-data-dir /proj/DECOMB/source/KOfam
-sbatch ../DECOMB/metaG/bin_KOfam-annotation.sh
+sbatch $DECOMB_git/metagenome_assembly_workflow/Bin_KEGG_modules.sh
 
 # explore the produces metabolic heatmap
 anvi-interactive --manual-mode \
