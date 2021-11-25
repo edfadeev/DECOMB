@@ -62,26 +62,32 @@ sbatch ../DECOMB/metaG/bin_co-assembly.sh
 ################################
 #combine bins using DAS Tool
 ################################
-#export list of contigs per bin from each binner
-anvi-export-collection -C CONCOCT \
-                        -p $WORKDIR/05_ANVIO/SPAdes/merged_profile/PROFILE.db \
-                        -o $WORKDIR/06_BINS/spades-concoct
+mkdir $WORKDIR/06_BINS/DAS_Tool
 
-anvi-export-collection -C metabat2 \
+#export list of contigs per bin from each binner
+anvi-export-collection -C concoct_new \
                         -p $WORKDIR/05_ANVIO/SPAdes/merged_profile/PROFILE.db \
-                        -o $WORKDIR/06_BINS/spades-metabat2
+                        -o $WORKDIR/06_BINS/DAS_Tool/spades-concoct
+
+anvi-export-collection -C metabat2_new \
+                        -p $WORKDIR/05_ANVIO/SPAdes/merged_profile/PROFILE.db \
+                        -o $WORKDIR/06_BINS/DAS_Tool/spades-metabat2
                         
 #extract only the contig names without the splits                         
-sed 's/_split_[0-9]*//g' 06_BINS/spades_concoct.txt| uniq -u - > 06_BINS/spades_concoct_contig.txt
-sed 's/_split_[0-9]*//g' 06_BINS/spades_metabat2.txt| uniq -u - > 06_BINS/spades_metabat2_contig.txt
+sed 's/_split_[0-9]*//g' $WORKDIR/06_BINS/DAS_Tool/spades_concoct.txt| uniq -u - > $WORKDIR/06_BINS/DAS_Tool/spades_concoct_contig.txt
+sed 's/_split_[0-9]*//g' $WORKDIR/06_BINS/DAS_Tool/spades_metabat2.txt| uniq -u - > $WORKDIR/06_BINS/DAS_Tool/spades_metabat2_contig.txt
 
 #generate protein fasta file for DAS Tool
-awk '{print ">"$2"_"$1"\n"$10}' $WORKDIR/05_ANVIO/spades-gene-calls-sorted.txt > $WORKDIR/05_ANVIO/spades-AAs-for-binning.fasta
+awk '{print ">"$2"_"$1"\n"$10}' $WORKDIR/05_ANVIO/spades-gene-calls-sorted.txt > $WORKDIR/06_BINS/DAS_Tool/spades-AAs-for-binning.fasta
 
 #combine bins using DAS Tool
 sbatch ../DECOMB/metaG/combined_binning.sh
 
-
+#import the bins from DAS
+anvi-import-collection --collection-name DAS_Tool \
+                        --pan-or-profile-db $WORKDIR/05_ANVIO/SPAdes/merged_profile/PROFILE.db \
+                        --contigs-db $WORKDIR/05_ANVIO/spades.db
+                        --contigs-mode $WORKDIR/06_BINS/DAS_Tool/spades_DASTool_scaffolds2bins.txt
 
 #explore bins of CONCOCT (they were better than the ones got out of metabat)
 anvi-interactive -p $WORKDIR/05_ANVIO/SPAdes/merged_profile/PROFILE.db -c $WORKDIR/05_ANVIO/spades.db -C CONCOCT --server-only -P 5678
