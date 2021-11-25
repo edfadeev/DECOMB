@@ -12,9 +12,9 @@ WORKDIR=/proj/DECOMB/analysis/metaG_anvio
 cd $WORKDIR
 
 #summarize refined bins
-anvi-summarize -p $WORKDIR/05_ANVIO/SPAdes/merged_profile/PROFILE.db -c $WORKDIR/05_ANVIO/spades.db -C CONCOCT \
--o $WORKDIR/06_BINS/concoct_refined_summary
+anvi-summarize -p $WORKDIR/05_ANVIO/SPAdes/merged_profile/PROFILE.db -c $WORKDIR/05_ANVIO/spades.db -C DAS_Tool \
+-o $WORKDIR/06_BINS/DAS_Tool_refined
 
 #export each bin into a separate db
 anvi-split -p $WORKDIR/05_ANVIO/SPAdes/merged_profile/PROFILE.db -c $WORKDIR/05_ANVIO/spades.db \
---collection-name CONCOCT -o $WORKDIR/06_BINS/REFINED
+--collection-name DAS_Tool -o $WORKDIR/06_BINS/REFINED
