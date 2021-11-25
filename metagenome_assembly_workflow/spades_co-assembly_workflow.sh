@@ -89,92 +89,33 @@ anvi-import-collection --collection-name DAS_Tool \
                         --contigs-db $WORKDIR/05_ANVIO/spades.db
                         --contigs-mode $WORKDIR/06_BINS/DAS_Tool/spades_DASTool_scaffolds2bins.txt
 
-#explore bins of CONCOCT (they were better than the ones got out of metabat)
-anvi-interactive -p $WORKDIR/05_ANVIO/SPAdes/merged_profile/PROFILE.db -c $WORKDIR/05_ANVIO/spades.db -C CONCOCT --server-only -P 5678
+#explore bins of DAS Tool
+anvi-interactive -p $WORKDIR/05_ANVIO/SPAdes/merged_profile/PROFILE.db -c $WORKDIR/05_ANVIO/spades.db -C DAS_Tool --server-only -P 5678
+
+anvi-summarize -p $WORKDIR/05_ANVIO/SPAdes/merged_profile/PROFILE.db -c $WORKDIR/05_ANVIO/spades.db -C DAS_Tool \
+-o $WORKDIR/06_BINS/DAS_Tool_summary
 
 ################################
 #Refine successful bins
 ################################
 #refine selected bins
+#Bin 189
+anvi-refine -p $WORKDIR/05_ANVIO/SPAdes/merged_profile/PROFILE.db -c $WORKDIR/05_ANVIO/spades.db -C DAS_Tool \
+-b Bin_189 --server-only -P 5678
+#Refined into - UBA8296 sp002338335 (Balneolales) - length 1.4Mbp (C94.4/R8.5)
 
-#Bins that were relatively more abundant in the Jelly metagenome
+#Bin 50_sub
+anvi-refine -p $WORKDIR/05_ANVIO/SPAdes/merged_profile/PROFILE.db -c $WORKDIR/05_ANVIO/spades.db -C DAS_Tool \
+-b Bin_189 --server-only -P 5678
+#Refined into Bin_50_sub_1 UBA7446 sp002470745 (Flavobacteriales) - length 1.09Mbp (C71.8/R8.5)
 
-#Bin 2
-#The bin was split into two separated bins of Alteromonas
-#Bin_2_1 - Alteromonas - length 3.7Mbp (C78.9/R0)
-#Bin_2_2 - Alteromonas - length 5.19Mbp (C80.3/R0)
-anvi-refine -p $WORKDIR/05_ANVIO/SPAdes/merged_profile/PROFILE.db -c $WORKDIR/05_ANVIO/spades.db -C CONCOCT -b Bin_2 --server-only -P 5678
+#Bin METABAT_111
+anvi-refine -p $WORKDIR/05_ANVIO/SPAdes/merged_profile/PROFILE.db -c $WORKDIR/05_ANVIO/spades.db -C DAS_Tool \
+-b METABAT_111 --server-only -P 5678
+#Refined into METABAT_111_1 GCA-2707915 sp004214065 (SAR86) - length 1.2Mbp (C63.4/R4.2)
 
-
-#Bin 134
-#The bin was split into two separated bins of Rhodobacteraceae
-#Bin_134_1 - Rhodobacteraceae - length 2.14Mbp (C87.3/R4.2)
-#Bin_134_2 - Rhodobacteraceae - length 2.3Mbp (C80.3/R1.4)
-anvi-refine -p $WORKDIR/05_ANVIO/SPAdes/merged_profile/PROFILE.db -c $WORKDIR/05_ANVIO/spades.db -C CONCOCT -b Bin_134 --server-only -P 5678
-
-#Bin 5
-#Based on coverage large part of the bin was discarded, however the remained bin also varies in coverage
-#Bin_5_1 - Alteromonas - length 4.63Mbp (C59.2/R1.4) - not included due to low completness
-#Bin_5_2 - family Nitrincolaceae - length 5.19Mbp (C100/R0)
-#Bin_5_3 - Reinekea blandensis (Pseudomonadales) - length 4.08Mbp (C100/R2.8)
-#Bin_5_4 - Pseudoalteromonas - length 4.87Mbp (C42.3/R0) - not included due to low completness
-anvi-refine -p $WORKDIR/05_ANVIO/SPAdes/merged_profile/PROFILE.db -c $WORKDIR/05_ANVIO/spades.db -C CONCOCT -b Bin_5 --server-only -P 5678
-
-#Bin 76
-#Based on coverage large part of the bin was discarded.
-#Bin_76_1 - Marinobacterium jannaschii (weak taxonomy, but for sure family Nitrincolaceae) - length 3.78Mbp (C100/R0)
-anvi-refine -p $WORKDIR/05_ANVIO/SPAdes/merged_profile/PROFILE.db -c $WORKDIR/05_ANVIO/spades.db -C CONCOCT -b Bin_76 --server-only -P 5678
-
-#Bin 84
-#in the following step part of the contigs were removed due to coverage differences
-#the removed conitgs had no taxonomic assignment
-#Bin_84_1 - Pseudoalteromonas phenolica - length 3.92Mbp (C93/R0). 
-
-anvi-refine -p $WORKDIR/05_ANVIO/SPAdes/merged_profile/PROFILE.db -c $WORKDIR/05_ANVIO/spades.db -C CONCOCT -b Bin_84 --server-only -P 5678
-
-#Bin 38
-#Based on coverage large part of the bin was discarded, however the remained bin also varies in coverage
-#Bin_38_1 - Vibrio - length 1.7Mbp (C83/R0)
-anvi-refine -p $WORKDIR/05_ANVIO/SPAdes/merged_profile/PROFILE.db -c $WORKDIR/05_ANVIO/spades.db -C CONCOCT -b Bin_38 --server-only -P 5678
-
-#Bin 102
-#Based on coverage large part of the bin was discarded, however the remained bin also varies in coverage
-#Bin_102_1 - Kordiimonas lacus - length 2.18Mbp (C73/R0)
-anvi-refine -p $WORKDIR/05_ANVIO/SPAdes/merged_profile/PROFILE.db -c $WORKDIR/05_ANVIO/spades.db -C CONCOCT -b Bin_102 --server-only -P 5678
-
-#Merging Bin_75 and Bin_177 did not povide better binning of the Pseudoalteromnas genome
-#anvi-merge-bins -p $WORKDIR/05_ANVIO/SPAdes/merged_profile/PROFILE.db -C CONCOCT --bin-names-list "Bin_75, Bin_177" --new-bin-name Bin_75_177
-#anvi-refine -p $WORKDIR/05_ANVIO/SPAdes/merged_profile/PROFILE.db -c $WORKDIR/05_ANVIO/spades.db -C CONCOCT -b Bin_75_177 --server-only -P 5678
-
-
-#Bins abundant in the control metagenome
-#Bin 179
-#Based on coverage large part of the bin was discarded, however the remained bin also varies in coverage
-#Bin_179_1 - family Cellvibrionaceae - length 3.18Mbp (C93/R2.8)
-anvi-refine -p $WORKDIR/05_ANVIO/SPAdes/merged_profile/PROFILE.db -c $WORKDIR/05_ANVIO/spades.db -C CONCOCT -b Bin_179 --server-only -P 5678
-
-#Bin 115
-#Based on coverage, the bin was split into two sub bins and part of the sequences were discarded.
-#Bin_115_1 - Bermanella sp002683575 (Pseudomonadales) - length 4.86Mbp (C98.6/R0)
-#Bin_115_2 - Glaciecola sp000155775 (Enterobacterales) - length 2.22Mbp (C100/R0)
-
-anvi-refine -p $WORKDIR/05_ANVIO/SPAdes/merged_profile/PROFILE.db -c $WORKDIR/05_ANVIO/spades.db -C CONCOCT -b Bin_115 --server-only -P 5678
-
-#Bin 12
-#Based on coverage large part of the bin was discarded, however the remained bin also varies in coverage
-#Bin_12_1 - Saccharospirillum sp003054965 - length 3.75Mbp (C95.8/R1.4)
-anvi-refine -p $WORKDIR/05_ANVIO/SPAdes/merged_profile/PROFILE.db -c $WORKDIR/05_ANVIO/spades.db -C CONCOCT -b Bin_102 --server-only -P 5678
-
-
-#Bins enriched in T0
-#Bin 150
-#The bin was refined twice to reduce redundancy
-#Bin_150_1_1 - Rhodobacteraceae - length 2.6Mbp (C97.2/R1.4)
-anvi-refine -p $WORKDIR/05_ANVIO/SPAdes/merged_profile/PROFILE.db -c $WORKDIR/05_ANVIO/spades.db -C CONCOCT -b Bin_150 --server-only -P 5678
-
-#***for not no additional bins were refined for T0***
-
-
+#bin smaller than 1Mbp with completness below 80% were excluded, as well as bins with redundancy of >10% (according to anvio)
+#in total 44 bins were selected
 #summarize and export them for further analysis
 mkdir $WORKDIR/06_BINS/REFINED
 
