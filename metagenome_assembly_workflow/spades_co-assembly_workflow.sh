@@ -7,7 +7,6 @@ conda activate /apps/anvio/7
 #Set up the path to the working directory and the scripts directory
 DECOMB_git=/proj/DECOMB/DECOMB_git
 
-
 WORKDIR=/proj/DECOMB/analysis/metaG_anvio/
 cd $WORKDIR
 
@@ -92,16 +91,13 @@ anvi-import-collection --collection-name DAS_Tool \
                         --contigs-db $WORKDIR/05_ANVIO/spades.db \
                         --contigs-mode $WORKDIR/06_BINS/DAS_Tool/spades__DASTool_scaffolds2bin.txt
 
-<<<<<<< HEAD
-#explore bins of CONCOCT (they were better than the ones got out of metabat)
-anvi-interactive -p $WORKDIR/05_ANVIO/SPAdes/merged_profile/PROFILE.db -c $WORKDIR/05_ANVIO/spades.db -C DAS_Tool --server-only -P 5678
-=======
 #explore bins of DAS Tool
 anvi-interactive -p $WORKDIR/05_ANVIO/SPAdes/merged_profile/PROFILE.db -c $WORKDIR/05_ANVIO/spades.db -C DAS_Tool --server-only -P 5678
 
+#summarize the DAS Tool bins
 anvi-summarize -p $WORKDIR/05_ANVIO/SPAdes/merged_profile/PROFILE.db -c $WORKDIR/05_ANVIO/spades.db -C DAS_Tool \
 -o $WORKDIR/06_BINS/DAS_Tool_summary
->>>>>>> b8eea15f7184c140ffbaaea5717365970f54e763
+
 
 ################################
 #Refine successful bins
