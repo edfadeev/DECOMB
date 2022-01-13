@@ -21,6 +21,7 @@ module load checkm/latest
 
 #checkm taxonomy_wf order Cellvibrionales -x fa -t 40 $WORKDIR/06_BINS/Selected_bins_summary/Selected_bins_fasta $WORKDIR/06_BINS/Selected_bins_summary/CheckM_Cellvibrionales
 
-checkm taxonomy_wf order Rhodospirillales -x fa -t 40 $WORKDIR/06_BINS/Selected_bins_summary/Selected_bins_fasta $WORKDIR/06_BINS/Selected_bins_summary/CheckM_Rhodospirillales
+#checkm taxonomy_wf order Rhodospirillales -x fa -t 40 $WORKDIR/06_BINS/Selected_bins_summary/Selected_bins_fasta $WORKDIR/06_BINS/Selected_bins_summary/CheckM_Rhodospirillales
 
+checkm lineage_wf -t 20 -x fa $WORKDIR/07_bins/${SampleID}_DAS_Tool_bins_fasta $WORKDIR/07_bins/${SampleID}_checkm
 
