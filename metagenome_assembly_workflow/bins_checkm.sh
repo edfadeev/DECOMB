@@ -13,15 +13,4 @@ WORKDIR=/proj/DECOMB/analysis/metaG_anvio/
 
 module load checkm/latest
 
-#checkm taxonomy_wf order Alteromonadales -x fa -t 40 $WORKDIR/06_BINS/Selected_bins_summary/Selected_bins_fasta $WORKDIR/06_BINS/Selected_bins_summary/CheckM_Alteromonadales
-
-#checkm taxonomy_wf order Rhodobacterales -x fa -t 40 $WORKDIR/06_BINS/Selected_bins_summary/Selected_bins_fasta $WORKDIR/06_BINS/Selected_bins_summary/CheckM_Rhodobacterales
-
-#checkm taxonomy_wf order Vibrionales -x fa -t 40 $WORKDIR/06_BINS/Selected_bins_summary/Selected_bins_fasta $WORKDIR/06_BINS/Selected_bins_summary/CheckM_Vibrionales
-
-#checkm taxonomy_wf order Cellvibrionales -x fa -t 40 $WORKDIR/06_BINS/Selected_bins_summary/Selected_bins_fasta $WORKDIR/06_BINS/Selected_bins_summary/CheckM_Cellvibrionales
-
-#checkm taxonomy_wf order Rhodospirillales -x fa -t 40 $WORKDIR/06_BINS/Selected_bins_summary/Selected_bins_fasta $WORKDIR/06_BINS/Selected_bins_summary/CheckM_Rhodospirillales
-
-checkm lineage_wf -t 20 -x fa $WORKDIR/07_bins/${SampleID}_DAS_Tool_bins_fasta $WORKDIR/07_bins/${SampleID}_checkm
-
+checkm lineage_wf -t 20 -x fasta $WORKDIR/06_BINS/REFINED/ $WORKDIR/06_BINS/Refined_DAS_bins_checkM

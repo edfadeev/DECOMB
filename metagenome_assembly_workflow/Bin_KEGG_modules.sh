@@ -11,7 +11,7 @@
 WORKDIR=/proj/DECOMB/analysis/metaG_anvio
 cd $WORKDIR
 
-readarray -t BINS < $WORKDIR/06_BINS/selected-bins.csv
+readarray -t BINS < $WORKDIR/06_BINS/Refined_bins.txt
 
 for bin in ${BINS[@]}; do
 
