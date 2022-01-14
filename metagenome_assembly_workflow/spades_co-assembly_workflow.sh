@@ -7,7 +7,6 @@ conda activate /apps/anvio/7
 #Set up the path to the working directory and the scripts directory
 DECOMB_git=/proj/DECOMB/DECOMB_git
 
-
 WORKDIR=/proj/DECOMB/analysis/metaG_anvio/
 cd $WORKDIR
 
@@ -70,15 +69,15 @@ mkdir $WORKDIR/06_BINS/DAS_Tool
 #export list of contigs per bin from each binner
 anvi-export-collection -C concoct_new \
                         -p $WORKDIR/05_ANVIO/SPAdes/merged_profile/PROFILE.db \
-                        -o $WORKDIR/06_BINS/DAS_Tool/spades-concoct
+                        -O $WORKDIR/06_BINS/DAS_Tool/spades-concoct
 
 anvi-export-collection -C metabat2_new \
                         -p $WORKDIR/05_ANVIO/SPAdes/merged_profile/PROFILE.db \
-                        -o $WORKDIR/06_BINS/DAS_Tool/spades-metabat2
+                        -O $WORKDIR/06_BINS/DAS_Tool/spades-metabat2
                         
 #extract only the contig names without the splits                         
-sed 's/_split_[0-9]*//g' $WORKDIR/06_BINS/DAS_Tool/spades_concoct.txt| uniq -u - > $WORKDIR/06_BINS/DAS_Tool/spades_concoct_contig.txt
-sed 's/_split_[0-9]*//g' $WORKDIR/06_BINS/DAS_Tool/spades_metabat2.txt| uniq -u - > $WORKDIR/06_BINS/DAS_Tool/spades_metabat2_contig.txt
+sed 's/_split_[0-9]*//g' $WORKDIR/06_BINS/DAS_Tool/spades-concoct.txt| uniq -u - > $WORKDIR/06_BINS/DAS_Tool/spades_concoct_contig.txt
+sed 's/_split_[0-9]*//g' $WORKDIR/06_BINS/DAS_Tool/spades-metabat2.txt| uniq -u - > $WORKDIR/06_BINS/DAS_Tool/spades_metabat2_contig.txt
 
 #generate protein fasta file for DAS Tool
 awk '{print ">"$2"_"$1"\n"$10}' $WORKDIR/05_ANVIO/spades-gene-calls-sorted.txt > $WORKDIR/06_BINS/DAS_Tool/spades-AAs-for-binning.fasta
@@ -89,14 +88,16 @@ sbatch ../DECOMB/metaG/combined_binning.sh
 #import the bins from DAS
 anvi-import-collection --collection-name DAS_Tool \
                         --pan-or-profile-db $WORKDIR/05_ANVIO/SPAdes/merged_profile/PROFILE.db \
-                        --contigs-db $WORKDIR/05_ANVIO/spades.db
-                        --contigs-mode $WORKDIR/06_BINS/DAS_Tool/spades_DASTool_scaffolds2bins.txt
+                        --contigs-db $WORKDIR/05_ANVIO/spades.db \
+                        --contigs-mode $WORKDIR/06_BINS/DAS_Tool/spades__DASTool_scaffolds2bin.txt
 
 #explore bins of DAS Tool
 anvi-interactive -p $WORKDIR/05_ANVIO/SPAdes/merged_profile/PROFILE.db -c $WORKDIR/05_ANVIO/spades.db -C DAS_Tool --server-only -P 5678
 
+#summarize the DAS Tool bins
 anvi-summarize -p $WORKDIR/05_ANVIO/SPAdes/merged_profile/PROFILE.db -c $WORKDIR/05_ANVIO/spades.db -C DAS_Tool \
 -o $WORKDIR/06_BINS/DAS_Tool_summary
+
 
 ################################
 #Refine successful bins
@@ -119,28 +120,49 @@ anvi-refine -p $WORKDIR/05_ANVIO/SPAdes/merged_profile/PROFILE.db -c $WORKDIR/05
 
 #bin smaller than 1Mbp with completness below 80% were excluded, as well as bins with redundancy of >10% (according to anvio)
 #in total 44 bins were selected
+#store the list of bins in '$WORKDIR/06_BINS/Refined_bins.txt'
+#Create a collection of the manually selected bins
+anvi-export-collection -C DAS_Tool \
+                        -p $WORKDIR/05_ANVIO/SPAdes/merged_profile/PROFILE.db \
+                        -O $WORKDIR/06_BINS/DAS_Tool/DAS_Tool
+
+
+sed 's/_split_[0-9]*//g' $WORKDIR/06_BINS/DAS_Tool/DAS_Tool.txt| uniq -u - > $WORKDIR/06_BINS/DAS_Tool/DAS_Tool_contig.txt
+
+readarray -t BINS < $WORKDIR/06_BINS/Refined_bins.txt
+for bin in ${BINS[@]}; do 
+grep -w ${bin} $WORKDIR/06_BINS/DAS_Tool/DAS_Tool_contig.txt >> $WORKDIR/06_BINS/Refined_bins_collection.txt
+done
+
+anvi-import-collection --collection-name Selected_DAS_bins \
+                        --pan-or-profile-db $WORKDIR/05_ANVIO/SPAdes/merged_profile/PROFILE.db \
+                        --contigs-db $WORKDIR/05_ANVIO/spades.db --contigs-mode \
+                        $WORKDIR/06_BINS/Refined_bins_collection_u.txt
+                        
+                        
 #summarize and export them for further analysis
 mkdir $WORKDIR/06_BINS/REFINED
 
 #produce summary of the selected bins
 sbatch $DECOMB_git/metagenome_assembly_workflow/sum_refined_bins.sh
 
-
 #explore the selected bins collection
-#add taxonomy to each bin for visualization (still work in progress)
-awk '{print $1,$11,$13}' 06_BINS/Selected_bins_summary/bins_summary.txt > 06_BINS/Selected_bins_tax.txt
-sed -i "1s/.*/item_name categorical_1 text_layer_01/" 06_BINS/Selected_bins_tax.txt
-sed -i 's/ /\t/g' 06_BINS/Selected_bins_tax.txt
+#add taxonomy to each bin for visualization
+awk '{print $1,$11}' $WORKDIR/06_BINS/DAS_Tool_summary/bins_summary.txt > $WORKDIR/06_BINS/Selected_bins_tax.txt
+sed -i "1s/.*/item_name categorical_1/" $WORKDIR/06_BINS/Selected_bins_tax.txt
+sed -i 's/ /\t/g' $WORKDIR/06_BINS/Selected_bins_tax.txt
 
-anvi-interactive -p $WORKDIR/05_ANVIO/SPAdes/merged_profile/PROFILE.db -c $WORKDIR/05_ANVIO/spades.db -C Selected_bins --server-only -P 5678
-
+anvi-interactive -p $WORKDIR/05_ANVIO/SPAdes/merged_profile/PROFILE.db -c $WORKDIR/05_ANVIO/spades.db \
+-C DAS_Tool --server-only -P 5678 --additional-layers $WORKDIR/06_BINS/Selected_bins_tax.txt
 
 #check bins completness with checkM
-mkdir $WORKDIR/06_BINS/Selected_bins_summary/Selected_bins_fasta
+mkdir $WORKDIR/06_BINS/REFINED/fasta
 
-find in $WORKDIR/06_BINS/Selected_bins_summary/ -type f -name '*.fa' -exec cp '{}' $WORKDIR/06_BINS/Selected_bins_summary/Selected_bins_fasta
+#Run checkm
+find in $WORKDIR/06_BINS/DAS_Tool_summary/ -type f -name '*.fa' -exec cp '{}' $WORKDIR/06_BINS/REFINED/fasta
 
 sbatch $DECOMB_git/metagenome_assembly_workflow/bin_checkM.sh
+
 
 ################################
 #Metabolic reconstruction of each bin

@@ -53,15 +53,15 @@ gene_tax_table_summary <-gene_tax_table %>% group_by(Class) %>%
 
 #remove taxa that had less than 1000 genes or an unknown taxonomy
 gene_tax_table_summary_fixed <- gene_tax_table_summary %>% 
-                                  mutate(Class= case_when(Total < 1000 ~ "Other taxa",
-                                                          grepl('Unknown', Class) ~ "Other taxa",
+                                  mutate(Class= case_when(Total < 1000 ~ "Other taxa (<1000 genes)",
+                                                          grepl('Unknown', Class) ~ "Other taxa (<1000 genes)",
                                                           TRUE~ Class))
 #fix the order of the classes for the figure
 taxa_classes <- unique(gene_tax_table_summary_fixed$Class)
-taxa_classes<- taxa_classes[!taxa_classes %in% c("Other taxa")]
+taxa_classes<- taxa_classes[!taxa_classes %in% c("Other taxa (<1000 genes)")]
 
 gene_tax_table_summary_fixed$Class <- factor(gene_tax_table_summary_fixed$Class,
-                                 levels=c(taxa_classes,"Other taxa"))
+                                 levels=c(taxa_classes,"Other taxa (<1000 genes)"))
 
 
 #plot taxonomy composition
@@ -98,9 +98,9 @@ ggsave(paste0(wd,"/R_figures/metaG_tax_comp.pdf"),
 ###################
 #Import metabolic estimates for each gene
 ###################
-metaG_kofam_hits <- read.csv(paste(wd,"metaG_analysis/metaG_anvio/05_ANVIO/spades_kofam_hits.txt",sep=""), sep="\t", h= T)
+metaG_kofam_hits <- read.csv(paste(wd,"metaG_analysis/metaG_anvio/05_ANVIO/spades-Kofam_hits.txt",sep=""), sep="\t", h= T)
 
-metaG_KEGG_modules <- read.csv(paste(wd,"metaG_analysis/metaG_anvio/05_ANVIO/spades_modules.txt",sep=""), sep="\t", h= T)
+metaG_KEGG_modules <- read.csv(paste(wd,"metaG_analysis/metaG_anvio/05_ANVIO/spades-Kofam_modules.txt",sep=""), sep="\t", h= T)
 
 
 metaG_KEGG_modules_by_gene <- metaG_KEGG_modules %>%
@@ -115,17 +115,17 @@ metaG_KEGG_modules_summary<- metaG_KEGG_modules_by_gene %>%
 
 
 
-#removeplace modules with less than 15000 genes
+#remove modules with less than 1000 genes
 metaG_KEGG_modules_summary_fixed <- metaG_KEGG_modules_summary %>% 
-  mutate(module_subcategory= case_when(Total.genes < 1500 ~ "Other (<1500 genes)",
+  mutate(module_subcategory= case_when(Total.genes < 1000 ~ "Other (<1000 genes)",
                           TRUE~ module_subcategory))
 
 #fix the order of the classes for the figure
 KEGG_modules <- unique(metaG_KEGG_modules_summary_fixed$module_subcategory)
-KEGG_modules<- KEGG_modules[!KEGG_modules %in% c("Other (<1500 genes)")]
+KEGG_modules<- KEGG_modules[!KEGG_modules %in% c("Other (<1000 genes)")]
 
 metaG_KEGG_modules_summary_fixed$module_subcategory <- factor(metaG_KEGG_modules_summary_fixed$module_subcategory,
-                                             levels=c(KEGG_modules,"Other (<1500 genes)"))
+                                             levels=c(KEGG_modules,"Other (<1000 genes)"))
 
 #plot only pathway modules
 metaG_KEGG_modules_summary_pathway<- metaG_KEGG_modules_summary_fixed %>% filter(module_class =="Pathway modules")
@@ -149,10 +149,14 @@ KEGG_modules_comp.p <- ggplot(metaG_KEGG_modules_summary_pathway, aes(x= 1, y= T
         text=element_text(size=14),legend.position = "bottom")
 
 
+#save combined figure
+ggarrange(tax_comp.p, KEGG_modules_comp.p, #heights = c(2,1.2),
+          ncol = 2, nrow = 1, align = "v", legend = "bottom",
+          legend.grob = do.call(rbind, c(list(get_legend(tax_comp.p),get_legend(KEGG_modules_comp.p)), size="first")))
 
 #save the plot
-ggsave(paste0(wd,"/R_figures/metaG_KEGG_comp.pdf"), 
-       plot = KEGG_modules_comp.p,
+ggsave(paste0(wd,"/R_figures/metaG_taxa_KEGG_combined.pdf"), 
+       plot = last_plot(),
        units = "cm",
        width = 30, height = 30, 
        #scale = 1,
