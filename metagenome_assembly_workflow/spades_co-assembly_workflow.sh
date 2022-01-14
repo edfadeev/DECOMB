@@ -126,42 +126,32 @@ anvi-export-collection -C DAS_Tool \
                         -p $WORKDIR/05_ANVIO/SPAdes/merged_profile/PROFILE.db \
                         -O $WORKDIR/06_BINS/DAS_Tool/DAS_Tool
 
-
 sed 's/_split_[0-9]*//g' $WORKDIR/06_BINS/DAS_Tool/DAS_Tool.txt| uniq -u - > $WORKDIR/06_BINS/DAS_Tool/DAS_Tool_contig.txt
+awk 'NR==FNR{a[$0];next} $NF in a' 06_BINS/Refined_bins.txt 06_BINS/DAS_Tool/DAS_Tool_contig.txt > 06_BINS/Refined_bins_collection.txt
 
-readarray -t BINS < $WORKDIR/06_BINS/Refined_bins.txt
-for bin in ${BINS[@]}; do 
-grep -w ${bin} $WORKDIR/06_BINS/DAS_Tool/DAS_Tool_contig.txt >> $WORKDIR/06_BINS/Refined_bins_collection.txt
-done
-
-anvi-import-collection --collection-name Selected_DAS_bins \
+#import the collection to Anvio
+anvi-import-collection --collection-name Refined_DAS_bins \
                         --pan-or-profile-db $WORKDIR/05_ANVIO/SPAdes/merged_profile/PROFILE.db \
                         --contigs-db $WORKDIR/05_ANVIO/spades.db --contigs-mode \
-                        $WORKDIR/06_BINS/Refined_bins_collection_u.txt
+                        $WORKDIR/06_BINS/Refined_bins_collection.txt
                         
-                        
-#summarize and export them for further analysis
-mkdir $WORKDIR/06_BINS/REFINED
 
-#produce summary of the selected bins
-sbatch $DECOMB_git/metagenome_assembly_workflow/sum_refined_bins.sh
+#add taxonomy to each bin for visualization
+awk '{print $1,$11}' $WORKDIR/06_BINS/Refined_DAS_bins/bins_summary.txt > $WORKDIR/06_BINS/Refined_DAS_bins_tax.txt
+sed -i "1s/.*/item_name categorical_1/" $WORKDIR/06_BINS/Refined_DAS_bins_tax.txt
+sed -i 's/ /\t/g' $WORKDIR/06_BINS/Refined_DAS_bins_tax.txt
 
 #explore the selected bins collection
-#add taxonomy to each bin for visualization
-awk '{print $1,$11}' $WORKDIR/06_BINS/DAS_Tool_summary/bins_summary.txt > $WORKDIR/06_BINS/Selected_bins_tax.txt
-sed -i "1s/.*/item_name categorical_1/" $WORKDIR/06_BINS/Selected_bins_tax.txt
-sed -i 's/ /\t/g' $WORKDIR/06_BINS/Selected_bins_tax.txt
-
 anvi-interactive -p $WORKDIR/05_ANVIO/SPAdes/merged_profile/PROFILE.db -c $WORKDIR/05_ANVIO/spades.db \
--C DAS_Tool --server-only -P 5678 --additional-layers $WORKDIR/06_BINS/Selected_bins_tax.txt
+-C Refined_DAS_bins --server-only -P 5678 --additional-layers $WORKDIR/06_BINS/Refined_DAS_bins_tax.txt
 
-#check bins completness with checkM
-mkdir $WORKDIR/06_BINS/REFINED/fasta
+#summarize and export the bins for further analysis
+sbatch $DECOMB_git/metagenome_assembly_workflow/sum_refined_bins.sh
 
-#Run checkm
-find in $WORKDIR/06_BINS/DAS_Tool_summary/ -type f -name '*.fa' -exec cp '{}' $WORKDIR/06_BINS/REFINED/fasta
+#the gff3 and fasta files were using for generating genbank files and annotation using RAST server
 
-sbatch $DECOMB_git/metagenome_assembly_workflow/bin_checkM.sh
+#check bins completness with checkM using the fasta files
+sbatch $DECOMB_git/metagenome_assembly_workflow/bins_checkm.sh
 
 
 ################################
@@ -172,7 +162,7 @@ mkdir 07_METABOLISM
 #list of bins and their locations
 #list of selected bins was manually produced and saved into:
 # 'selected-bins.csv'
-readarray -t BINS < $WORKDIR/06_BINS/selected-bins.csv
+readarray -t BINS < $WORKDIR/06_BINS/Refined_bins.txt
 
 echo -e "name\tcontigs_db_path" > $WORKDIR/07_METABOLISM/selected-bins-collection.txt
 for bin in ${BINS[@]}; do 
@@ -191,6 +181,7 @@ anvi-interactive --manual-mode \
                  -p $WORKDIR/07_METABOLISM/Bins_metabolism_PROFILE.db \
                  --title "Bins Metabolism Heatmap" \
                  --server-only -P 5678
+
 
 #produce table of the different groups of bins
 JELLY_BINS=("Bin_2_1" "Bin_2_2" "Bin_134_1" "Bin_134_2" "Bin_5_2" "Bin_5_3" "Bin_84_1" "Bin_76_1" "Bin_38_1" "Bin_102_1") 
@@ -214,3 +205,11 @@ module load R/4.0.2
 anvi-compute-functional-enrichment -M $WORKDIR/07_METABOLISM/Bins_modules.txt \
                                    -G $WORKDIR/07_METABOLISM/bin-groups.txt \
                                    -o $WORKDIR/07_METABOLISM/Bin_enriched_modules.txt
+
+
+
+
+
+
+
+
