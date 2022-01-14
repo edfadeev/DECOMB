@@ -48,8 +48,8 @@ add_nsaf=function(ps, prot_length){
 }
 
 #load metaproteome phyloseq object
-metaP_obj0<- readRDS("metaP/metaP_ps_raw.rds")
-exoP_obj0<- readRDS("metaP/exoP_ps_raw.rds")
+metaP_obj0<- readRDS("data/metaP_ps_raw.rds")
+exoP_obj0<- readRDS("data/exoP_ps_raw.rds")
 
 ###################
 #Plot number of proteins per sample

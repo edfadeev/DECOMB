@@ -83,7 +83,7 @@ sed 's/_split_[0-9]*//g' $WORKDIR/06_BINS/DAS_Tool/spades-metabat2.txt| uniq -u 
 awk '{print ">"$2"_"$1"\n"$10}' $WORKDIR/05_ANVIO/spades-gene-calls-sorted.txt > $WORKDIR/06_BINS/DAS_Tool/spades-AAs-for-binning.fasta
 
 #combine bins using DAS Tool
-sbatch ../DECOMB/metaG/combined_binning.sh
+sbatch ../DECOMB/metaG/DAS_Tool_binning.sh
 
 #import the bins from DAS
 anvi-import-collection --collection-name DAS_Tool \
