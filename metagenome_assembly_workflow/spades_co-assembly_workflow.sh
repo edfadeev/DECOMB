@@ -174,7 +174,7 @@ done
 #anvi-setup-kegg-kofams --kegg-data-dir /proj/DECOMB/source/KOfam
 sbatch $DECOMB_git/metagenome_assembly_workflow/Bin_KEGG_modules.sh
 
-# explore the produces metabolic heatmap
+# explore the produced metabolic heatmap
 anvi-interactive --manual-mode \
                  -d $WORKDIR/07_METABOLISM/Bins-completeness-MATRIX.txt \
                  -t $WORKDIR/07_METABOLISM/Bins-completeness-MATRIX.txt.newick \
@@ -182,7 +182,9 @@ anvi-interactive --manual-mode \
                  --title "Bins Metabolism Heatmap" \
                  --server-only -P 5678
 
-
+#############################################################################
+# draft
+#############################################################################
 #produce table of the different groups of bins
 JELLY_BINS=("Bin_2_1" "Bin_2_2" "Bin_134_1" "Bin_134_2" "Bin_5_2" "Bin_5_3" "Bin_84_1" "Bin_76_1" "Bin_38_1" "Bin_102_1") 
 

@@ -26,36 +26,19 @@ require(pheatmap)
 #load metaproteome phyloseq object
 metaP_obj0<- readRDS("data/metaP_ps_raw.rds")
 
-###################
-#run DESeq2 
-###################
-metaP_obj0.ddsMat <- phyloseq_to_deseq2(metaP_obj0, ~Type)
-metaP.DEseq <- DESeq(metaP_obj0.ddsMat, fitType="local")
-
-###################
-#Generate heatmap of the top 50 proteins
-###################
-#conduct variance transformation
-metaP.DEseq.vsd <- vst(metaP_obj0.ddsMat,  fitType="local", blind=FALSE)
-
-#select only the top 50 proteins and produce dataframe with metadata
-select_prot <- order(rowMeans(counts(metaP.DEseq, normalized=TRUE)),
-                     decreasing=TRUE)[1:50]
-meta_df <- as.data.frame(colData(metaP.DEseq)[,c("Replicate","Type")])
-
-#produce and save a heatmap
-pheatmap(assay(metaP.DEseq.vsd)[select_prot,], cluster_rows=FALSE, show_rownames=FALSE,
-         cluster_cols=TRUE, annotation_col=meta_df,
-         main = "Top 50 proteins", filename = paste0(wd, "R_figures/metaP_heatmap.pdf"))
-
 
 ###################
 #Generate PCA plot 
 ###################
+#conduct variance stabiliozation of the metaP dataset
+metaP_obj0.ddsMat <- phyloseq_to_deseq2(metaP_obj0, ~Type)
+metaP.DEseq.vsd <- vst(metaP_obj0.ddsMat,  fitType="local", blind=FALSE)
+
+#plot PCA
 metaP_pca.df <- plotPCA(metaP.DEseq.vsd, intgroup=c("Sample_name","Replicate","Type"),  returnData=TRUE)
 
 metaP_pca.df<-  metaP_pca.df %>% mutate(SampleID = gsub("_MP","",Sample_name))
-  
+
 #extract explained variance
 percentVar <- round(100 * attr(metaP_pca.df, "percentVar"))
 
@@ -103,8 +86,26 @@ mod.HSD
 plot(mod.HSD)
 
 ###################
+#Generate heatmap of the top 100 proteins
+###################
+#select only the top 100 proteins and produce dataframe with metadata
+select_prot <- order(rowMeans(counts(metaP.DEseq, normalized=FALSE)),
+                     decreasing=TRUE)[1:100]
+meta_df <- as.data.frame(colData(metaP.DEseq)[,c("Replicate","Type")])
+
+#produce and save a heatmap
+pheatmap(assay(metaP.DEseq.vsd)[select_prot,], cluster_rows=TRUE, show_rownames=FALSE,
+         cluster_cols=TRUE, annotation_col=meta_df,
+         main = "Top 100 proteins", filename = paste0(wd, "R_figures/metaP_heatmap.pdf"))
+
+
+
+###################
 #Identify sig. enriched proteins between Jelly and Control bottles
 ###################
+#run DESeq2 enrichment test
+metaP.DEseq <- DESeq(metaP_obj0.ddsMat, fitType="local")
+
 #export results for Jelly vs. Control
 metaP.DEseq.res <- results(metaP.DEseq, name = "Type_Jelly_vs_Control")
 
@@ -140,3 +141,17 @@ metaP.DEseq.res_KOfam_by_module <- metaP.DEseq.res_KOfam %>%
 enr_prot_per_KEGG_module<- metaP.DEseq.res_KOfam_by_module %>% 
   group_by(Type, module_name,module_class, module_category, module_subcategory, module_definition) %>% 
   summarize(Prot.n = n())
+
+
+###################
+#Identify which enriched proteins were associated with Bins
+###################
+Refined_DAS_bins <-  read.csv(paste(wd,"metaG_analysis/metaG_anvio/06_BINS/Refined_bins_collection.txt",sep=""),
+                              sep="\t", h= F)
+
+names(Refined_DAS_bins)<- c("contig","Bin")
+
+metaP.DEseq.res.sig_Bins <- metaP.DEseq.res.sig %>% 
+  left_join(Refined_DAS_bins, by = c("contig")) %>% 
+  filter(!is.na(Bin))
+
