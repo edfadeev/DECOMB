@@ -10,7 +10,7 @@ wd <- "/Users/eduardfadeev/Google Drive (dr.eduard.fadeev@gmail.com)/DECOMB/"
 wd <- "~/Data/Postdoc-Vienna/DECOMB/"
 
 #Windows
-wd <- "D:/Postdoc-Vienna/DECOMB/"
+wd <- "F:/My Drive/DECOMB/"
 
 #load libraries
 require(dplyr)
@@ -140,7 +140,7 @@ prot_tax_comp.p<- ggplot(prot_nsaf.class.agg,
 
 
 #save the plot
-ggsave(paste0(wd,"/R_figures/metaP_tax_order_comp.pdf"), 
+ggsave(paste0(wd,"R_figures/metaP_tax_order_comp.pdf"), 
        plot = prot_tax_comp.p,
        units = "cm",
        width = 30, height = 15, 

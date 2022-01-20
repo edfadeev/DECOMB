@@ -10,7 +10,7 @@ wd <- "/Users/eduardfadeev/Google Drive (dr.eduard.fadeev@gmail.com)/DECOMB/"
 wd <- "~/Data/Postdoc-Vienna/DECOMB/"
 
 #Windows
-wd <- "D:/Postdoc-Vienna/DECOMB/"
+wd <- "F:/My Drive/DECOMB/"
 
 #load libraries
 require(dplyr)
@@ -104,7 +104,8 @@ Bins_gene_calls_KEGG_modules<-Bins_modules %>%
 Bins_gene_calls_KEGG_modules %>%  
   mutate(colour = "yellow") %>% 
   select("ko","colour") %>% 
-  write.table("data/KEGG/Bins_ko.txt",
+  unique() %>% 
+  write.table("data/KEGG/Bin_ko.txt",
               row.names = FALSE,
               col.names = FALSE,quote = FALSE)
 
