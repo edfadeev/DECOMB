@@ -116,6 +116,43 @@ metaP.DEseq.res.sig <- as(metaP.DEseq.res_LFC, "data.frame") %>%  mutate(gene_ca
                             filter(padj < 0.1 ) %>% 
                             left_join(as.data.frame(tax_table(metaP_obj0)), by = "gene_caller_id")
 
+
+###################
+#summarize the significantly enr. proteins by Taxonomic orders
+###################
+metaP.DEseq.res.sig.TaxOrder <- metaP.DEseq.res.sig %>% 
+  mutate(Type = case_when(log2FoldChange>1 ~ "Jelly",
+                          log2FoldChange< -1 ~ "Control")) %>% 
+  group_by(Type, Class, Order) %>% 
+  filter(Type %in% c("Jelly","Control")) %>% 
+  summarize(Total_prot.= length(Type))
+
+
+#Alteromonadales
+metaP.DEseq.res.sig.Alt<- metaP.DEseq.res.sig %>% 
+  mutate(Type = case_when(log2FoldChange>1 ~ "Jelly",
+                          log2FoldChange< -1 ~ "Control")
+         ) %>% 
+  filter(Type %in% c("Jelly","Control"),
+         Order =="Alteromonadales")
+
+#Vibrio
+metaP.DEseq.res.sig.Vib<- metaP.DEseq.res.sig %>% 
+  mutate(Type = case_when(log2FoldChange>1 ~ "Jelly",
+                          log2FoldChange< -1 ~ "Control")
+  ) %>% 
+  filter(Type %in% c("Jelly","Control"),
+         Order =="Vibrionales")
+
+#Rhodobacters
+metaP.DEseq.res.sig.Rhod<- metaP.DEseq.res.sig %>% 
+  mutate(Type = case_when(log2FoldChange>1 ~ "Jelly",
+                          log2FoldChange< -1 ~ "Control")
+  ) %>% 
+  filter(Type %in% c("Jelly","Control"),
+         Order =="Rhodobacterales")
+
+
 ###################
 #summarize the significantly enr. proteins by Protein families
 ###################
