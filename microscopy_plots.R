@@ -1,4 +1,5 @@
 require(tidyr)
+require(dplyr)
 require(reshape2)
 require(ggplot2)
 require(stringr)
@@ -33,40 +34,24 @@ abund_table_long <- abund_table_raw %>%
 #summarize cell abundance per replicate
 abund_table_long_rep_mean <- abund_table_long %>% 
                           group_by(Type, Sample, Time) %>% 
-                          summarise(DAPI.mean = mean(DAPI.conc),
+                          summarise(DAPI.mn = mean(DAPI.conc),
                                     DAPI.sd = sd(DAPI.conc),
                                     FOVs = n())
 
 #plot cell abundances per replicate
 abund_table_long_rep_mean %>% 
   filter(Type !="Ml") %>% 
-  ggplot(aes(x=Time, y = DAPI.mean, group = Sample))+
+  ggplot(aes(x=Time, y = DAPI.mn, group = Sample))+
   geom_point()+
   geom_line(aes(colour = Type))+
-  geom_errorbar(aes(ymin = DAPI.mean - DAPI.sd, ymax = DAPI.mean + DAPI.sd),
+  geom_errorbar(aes(ymin = DAPI.mn - DAPI.sd, ymax = DAPI.mn + DAPI.sd),
                 width = 0.2, position = position_dodge(0.1))+
   labs(x= "Time", y = "Cell abundance (cells mL-1)")+
   theme_bw()
 
-#summarize cell abundance per treatment
-abund_table_long_mean <- abund_table_long_rep_mean %>% 
-  group_by(Type, Time) %>% 
-  summarise(DAPI.total = mean(DAPI.mean),
-            DAPI.se = sd(DAPI.mean)/sqrt(length(DAPI.mean)))
-
-#plot cell abundances per treatment
-abund_table_long_mean %>% 
-  filter(Type !="Ml") %>% 
-  ggplot(aes(x=Time, y = DAPI.total, group = Type))+
-  geom_point()+
-  geom_line(aes(colour = Type))+
-  geom_errorbar(aes(ymin = DAPI.total - DAPI.se, ymax = DAPI.total + DAPI.se),
-                width = 0.2, position = position_dodge(0.1))+
-  labs(x= "Time", y = "Cell abundance (cells mL-1)")+
-  theme_bw()
 
 ###################
-#Plot respiration data of different taxa 
+#Respiration and production data of different taxa 
 ###################
 # read counts data and adjust labeling
 resp_prod_table_raw <- read.csv("F:/My Drive/DECOMB/Microscopy/for_R/resp_and_prod_data_complete.csv",
@@ -92,26 +77,105 @@ resp_prod_FOV_conc <- resp_prod_table_raw %>%
 #calculate mean concentration for all FOVs in each sample
 resp_prod_mean.conc <- resp_prod_FOV_conc %>% 
   group_by(Type, Sample, Time, Probe, Method) %>% 
-  summarise(DAPI.mean = mean(DAPI.conc),
-            DAPI.sd = sd(DAPI.conc),
+  summarise(DAPI.mn = mean(DAPI.conc),
             Pos.mean = mean(Positive.conc),
-            Pos.sd = sd(Positive.conc),
             FITC.mean = mean(DAPI.FITC.conc),
-            FITC.sd = sd(DAPI.FITC.conc),
-            FISH.mean = mean(DAPI.FISH.conc),
-            FISH.sd = sd(DAPI.FISH.conc))
+            FISH.mean = mean(DAPI.FISH.conc))
 
+###################
+#Combined DAPI plot
+###################
+#summarize DAPI per treatment from manual counts
+abund_table_long_mean <- abund_table_long_rep_mean %>% 
+  group_by(Type, Time) %>% 
+  summarise(DAPI.mean = mean(DAPI.mn),
+            DAPI.se = sd(DAPI.mn)/sqrt(length(DAPI.mn)))
+
+
+#summarize DAPI per treatment from automatic counts
+resp_prod_DAPI_mean <- resp_prod_mean.conc %>% 
+                        group_by(Type, Time) %>% 
+                        summarise(DAPI.auto.mean = mean(DAPI.mn),
+                        DAPI.auto.se = sd(DAPI.mn)/sqrt(length(DAPI.mn)))
+
+#merge DAPi counts
+DAPI_table_comb <- abund_table_long_mean %>% 
+                    left_join(resp_prod_DAPI_mean, by = c("Type", "Time"))
+
+#plot
+DAPI_table_comb %>% 
+  filter(Type !="Ml") %>% 
+  ggplot(aes(x=Time, y = DAPI.mean, group = Type))+
+  geom_point(size = 3)+
+  geom_line(aes(colour = Type), size = 1)+
+  geom_errorbar(aes(ymin = DAPI.mean - DAPI.se, ymax = DAPI.mean + DAPI.se),
+                width = 0.1)+
+  labs(x= "Time", y = "Cell abundance (cells mL-1)")+
+  geom_point(aes(x=Time, y = DAPI.auto.mean, fill = Type), size = 4, shape = 23)+
+  geom_errorbar(aes(ymin = DAPI.auto.mean - DAPI.auto.se, ymax = DAPI.auto.mean + DAPI.auto.se),
+                width = 0.1)+
+  theme_bw()
+
+
+
+###################
+#Plot total abundance, respiration and production of each taxa 
+###################
+resp_prod_treat_mean <- resp_prod_mean.conc %>% 
+  group_by(Type, Time, Probe, Method) %>% 
+  summarise(Pos.conc = mean(Pos.mean),
+            FITC.conc = mean(FITC.mean),
+            FISH.conc = mean(FISH.mean)) %>% 
+  melt()%>% 
+  dplyr::rename(mean = value)
+
+
+resp_prod_treat_se <- resp_prod_mean.conc %>% 
+  group_by(Type, Time, Probe, Method) %>% 
+  summarise(Pos.conc = sd(Pos.mean)/sqrt(length(Pos.mean)),
+            FITC.conc = sd(FITC.mean)/sqrt(length(FITC.mean)),
+            FISH.conc = sd(FISH.mean)/sqrt(length(FISH.mean))) %>% 
+  melt() %>% 
+  dplyr::rename(se = value)
+
+#merge means and se
+resp_prod_treat <- left_join(resp_prod_treat_mean, resp_prod_treat_se)
 
 #plot means
-resp_prod_mean.conc %>% 
+resp_prod_treat %>% 
+  filter(!Time %in% c("T0")) %>% 
+  ggplot(aes(x=Time, y= mean, fill = variable, group = variable))+
+  geom_bar(position = position_dodge(), stat="identity")+
+  #geom_col(position = "dodge")+
+  geom_errorbar(aes(ymin = mean - se, ymax = mean + se),
+                width = 0.1,position=position_dodge(.9))+
+  facet_grid(Method+Type~Probe)+
+  scale_y_continuous(labels=scales::scientific_format())+
+  theme_bw()
+  
+  
+  
+  
+  
+  
+  
   melt() %>% 
-  filter(variable %in% c("Pos.mean")) %>% 
+  #filter(variable %in% c("Pos.mean")) %>% 
   ggplot(aes(x=Time, y= value, fill = Probe))+
   geom_col(position = "dodge")+
   facet_grid(Method~Sample, scales = "free_y")+
   scale_y_continuous(labels=scales::scientific_format())+
   theme_bw()
 
+#plot means
+resp_prod_mean.conc %>% 
+  melt() %>% 
+  filter(variable %in% c("DAPI.mean")) %>% 
+  ggplot(aes(x=Time, y= value, fill = Probe))+
+  geom_col(position = "dodge")+
+  facet_grid(Method~Sample, scales = "free_y")+
+  scale_y_continuous(labels=scales::scientific_format())+
+  theme_bw()
 
 
 #plot EUB means
