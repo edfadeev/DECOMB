@@ -3,6 +3,7 @@ require(dplyr)
 require(reshape2)
 require(ggplot2)
 require(stringr)
+require(ggpattern) #remotes::install_github("coolbutuseless/ggpattern")
 
 #calculation factor
 filtration.surface.area <- 176714437.5 #um
@@ -47,7 +48,9 @@ abund_table_long_rep_mean %>%
   geom_errorbar(aes(ymin = DAPI.mn - DAPI.sd, ymax = DAPI.mn + DAPI.sd),
                 width = 0.2, position = position_dodge(0.1))+
   labs(x= "Time", y = "Cell abundance (cells mL-1)")+
-  theme_bw()
+  theme_bw()+
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+        legend.position = "bottom")
 
 
 ###################
@@ -114,7 +117,9 @@ DAPI_table_comb %>%
   geom_point(aes(x=Time, y = DAPI.auto.mean, fill = Type), size = 4, shape = 23)+
   geom_errorbar(aes(ymin = DAPI.auto.mean - DAPI.auto.se, ymax = DAPI.auto.mean + DAPI.auto.se),
                 width = 0.1)+
-  theme_bw()
+  theme_bw()+
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+        legend.position = "bottom")
 
 
 
@@ -143,7 +148,8 @@ resp_prod_treat <- left_join(resp_prod_treat_mean, resp_prod_treat_se)
 
 #plot means
 resp_prod_treat %>% 
-  filter(!Time %in% c("T0")) %>% 
+  filter(!Time %in% c("T0"),
+         variable != "FITC.conc") %>% 
   ggplot(aes(x=Time, y= mean, fill = variable, group = variable))+
   geom_bar(position = position_dodge(), stat="identity")+
   #geom_col(position = "dodge")+
@@ -151,8 +157,9 @@ resp_prod_treat %>%
                 width = 0.1,position=position_dodge(.9))+
   facet_grid(Method+Type~Probe)+
   scale_y_continuous(labels=scales::scientific_format())+
-  theme_bw()
-  
+  theme_bw()+
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+        legend.position = "bottom")
   
   
   
