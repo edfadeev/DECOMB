@@ -23,17 +23,22 @@ biochem_long<- biochem_raw %>%
                                        TRUE ~ Type)) %>% 
                 filter(variable %in% c("NO2_cal","NO3_cal",
                                        "PO4_cal","NH4_cal",
-                                       "DOC_cal","TDN_cal"))
+                                       "DOC_cal","TDN_cal")) %>% 
+                mutate(value = case_when(value<0 ~ 0,
+                                         TRUE ~ value))#if value is negative after blanking force to 0
                       
 
 #plot biochemical paprameters  
 biochem_long %>% 
+  filter(!Type %in% c("Inoculum","ASW")) %>%
   ggplot(aes(x= Time, y = value, group = interaction(Sample, variable)))+
   geom_point(aes(shape = Type))+
   geom_line(aes(colour = Type))+
   labs(x= "Time", y = "Concentration (umol L-1)")+
   facet_wrap(~variable, scales = "free_y")+
-  theme_bw()
+  theme_bw()+
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+        legend.position = "bottom")
 
 
 ###################
@@ -50,11 +55,14 @@ AAs_long<- AAs_raw %>%
                          Type %in% c("J1","J2","J3") ~ "Jelly-OM",
                          TRUE ~ Type))
 
-#plot biochemical paprameters  
+#plot biochemical parameters  
 AAs_long %>% 
+  filter(!Type %in% c("Inoculum","ASW")) %>%
   ggplot(aes(x= Time, y = value, group = interaction(Sample, Fraction, variable)))+
   geom_point(aes(shape = Fraction))+
   geom_line(aes(colour = Type))+
   labs(x= "Time", y = "Concentration (umol L-1)")+
   facet_wrap(~variable, scales = "free_y")+
-  theme_bw()
+  theme_bw()+
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+        legend.position = "bottom")
