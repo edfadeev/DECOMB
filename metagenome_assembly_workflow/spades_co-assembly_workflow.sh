@@ -1,13 +1,16 @@
 #login with port forwarding
 ssh -L 5678:localhost:5678 slurm
 
+#load conda
+module load conda
+
 #workflow for co-assembly of metagenomes using SPAdes and annotation using Anvio
-conda activate /apps/anvio/7
+conda activate anvio_7.1
 
 #Set up the path to the working directory and the scripts directory
 DECOMB_git=/proj/DECOMB/DECOMB_git
 
-WORKDIR=/proj/DECOMB/analysis/metaG_anvio/
+WORKDIR=/home/project/oceanography/DECOMB/metaG_anvio
 cd $WORKDIR
 
 #export sequences from bam files, run QC and trim adapters
