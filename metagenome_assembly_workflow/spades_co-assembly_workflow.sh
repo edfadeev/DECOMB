@@ -8,7 +8,7 @@ module load conda
 conda activate anvio_7.1
 
 #Set up the path to the working directory and the scripts directory
-DECOMB_git=/proj/DECOMB/DECOMB_git
+DECOMB_git=/scratch/oceanography/efadeev/20220302_DECOMB/DECOMB_git
 
 WORKDIR=/home/project/oceanography/DECOMB/metaG_anvio
 cd $WORKDIR
