@@ -1,17 +1,3 @@
-########################################
-#Plot KEGG pathways of each bin
-########################################
-
-#set working directory
-#macOS
-wd <- "/Users/eduardfadeev/Google Drive (dr.eduard.fadeev@gmail.com)/DECOMB/"
-
-#Linux 
-wd <- "~/Data/Postdoc-Vienna/DECOMB/"
-
-#Windows
-wd <- "D:/Postdoc-Vienna/DECOMB/"
-
 #load libraries
 require(dplyr)
 require(tidyr)
