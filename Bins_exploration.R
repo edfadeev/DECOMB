@@ -1,26 +1,9 @@
-########################################
-#Plot KEGG pathways of each bin
-########################################
-
-#set working directory
-#macOS
-wd <- "/Users/eduardfadeev/Google Drive (dr.eduard.fadeev@gmail.com)/DECOMB/"
-
-#Linux 
-wd <- "~/Data/Postdoc-Vienna/DECOMB/"
-
-#Windows
-wd <- "F:/My Drive/DECOMB/"
-
 #load libraries
 require(dplyr)
 require(tidyr)
-require(phyloseq)
 require(ggplot2)
-require(ggpubr)
-require(DESeq2)
-require(vegan)
 require(pathview)
+
 
 
 tol21rainbow<- c("#771155", "#AA4488","#CC99BB","#114477", 
@@ -33,32 +16,23 @@ tol21rainbow<- c("#771155", "#AA4488","#CC99BB","#114477",
 ######################################
 #Investigate metabolic pathways in the bins
 ######################################
-#Import metabolism estimates for the bins
-modules_info <- read.csv(paste(wd,"metaG_analysis/metaG_anvio/07_METABOLISM/modules_info.txt",sep=""), sep="\t", h= T)
+Bins_modules <- read.csv("data/metagenome/Bins_modules.txt", sep="\t", h= T)
 
-Bins_kofam_hits <- read.csv(paste(wd,"metaG_analysis/metaG_anvio/07_METABOLISM/Bins_kofam_hits.txt",sep=""), 
-                            sep="\t", h= T,quote="")
-
-Bins_modules <- read.csv(paste(wd,"metaG_analysis/metaG_anvio/07_METABOLISM/Bins_modules.txt",sep=""), sep="\t", h= T)
-
-
-######################################
-#plot KEGG modules number per bin
-######################################
 #subset complete modules only in categories of interest and summarize
 Bins_modules_sum<- Bins_modules %>% 
   group_by(genome_name, module_category, module_subcategory) %>% 
-  filter(module_is_complete == "True" &
-         #module_completeness >0.9 & 
-         module_category %in% c("Amino acid metabolism",
-                                "Carbohydrate metabolism",
-                                "Energy metabolism",
-                               "Lipid metabolism")
-  ) %>%
+  filter(module_class == "Pathway modules" &
+           module_is_complete == "True" &
+           #module_completeness >0.9 & 
+           module_category %in% c("Amino acid metabolism",
+                                  "Carbohydrate metabolism",
+                                  "Energy metabolism",
+                                  "Lipid metabolism",
+                                  "Metabolism of cofactors and vitamins")) %>%
   summarize(Total = n())
 
 #plot
-Bins_modules_plot<- ggplot(Bins_modules_sum, aes(x=genome_name, y = Total, fill = module_subcategory))+
+ggplot(Bins_modules_sum, aes(x=genome_name, y = Total, fill = module_subcategory))+
   geom_col()+
   facet_wrap(module_category~., scale = "free_y")+
   scale_fill_manual(values = tol21rainbow)+
@@ -70,91 +44,45 @@ Bins_modules_plot<- ggplot(Bins_modules_sum, aes(x=genome_name, y = Total, fill 
 
 
 #save the plot
-ggsave(paste0(wd,"/R_figures/KEGG_modules_per_bin.pdf"), 
-       plot = Bins_modules_plot,
+ggsave("Figures/KEGG_modules_per_bin.pdf", 
+       plot = last_plot(),
        units = "cm",
        width = 30, height = 30, 
        #scale = 1,
        dpi = 300)
 
-
 ######################################
 #Explore KEGG pathways per bin
 ######################################
-Bins_kofam_hits_parsed <- Bins_kofam_hits %>% 
-  separate_rows(modules_with_ko, sep = ',') %>% 
-  dplyr::rename("kegg_module" = "modules_with_ko")
+Bins_kofam_hits_parsed <- read.csv("data/metagenome/Bins_kofam_hits.txt",
+                                   sep="\t", h= T,quote="")%>% 
+                          separate_rows(modules_with_ko, sep = ',') %>% 
+                          dplyr::rename("kegg_module" = "modules_with_ko")
+
 
 #merge the identified modules and the genes calls of only the complete modules
 Bins_gene_calls_KEGG_modules<-Bins_modules %>% 
   separate_rows(gene_caller_ids_in_module, sep = ',') %>% 
   dplyr::rename("gene_caller_id" = "gene_caller_ids_in_module") %>% 
   filter(module_is_complete == "True") %>% 
-  mutate(gene_caller_id=as.integer(gene_caller_id),
-         #genome_name = factor(genome_name, levels = c("Bin_84_1","Bin_76_1","Bin_5_2",
-         #                                                "Bin_2_1","Bin_5_3","Bin_38_1","Bin_2_2",
-         #                                                "Bin_179_1","Bin_115_2","Bin_115_1","Bin_102_1",
-         #                                                "Bin_12_1","Bin_150_1_1"))
-  ) %>% 
+  mutate(gene_caller_id=as.integer(gene_caller_id)) %>% 
   left_join(Bins_kofam_hits_parsed[,c("genome_name","gene_caller_id","contig","kegg_module","ko","ko_definition")],
             by = c("genome_name","kegg_module","gene_caller_id"))
 
-
 #export for KEGG website 
-Bins_gene_calls_KEGG_modules %>%  
-  mutate(colour = "yellow") %>% 
-  select("ko","colour") %>% 
-  unique() %>% 
-  write.table("data/KEGG/Bin_ko.txt",
-              row.names = FALSE,
-              col.names = FALSE,quote = FALSE)
-
-
-############################################################################
-#plot the pathways of interest for each bin
-############################################################################
-#pathways of interest
-pathways<- c("00010", #Glycolysis / Gluconeogenesis
-             "00020", #TCA cycle
-             "01200", #carbon metabolism
-             "00190", #Oxidative phosphorylation
-             "00071", #Fatty acid degradation
-             "00250", #Alanine, aspartate and glutamate metabolism
-             "00260", #Glycine, serine and threonine metabolism
-             "00270", #Cysteine and methionine metabolism
-             "00280", #Valine, leucine and isoleucine degradation
-             "00310", #Lysine degradation
-             "00330", #Arginine and proline metabolism
-             "00340", #Histidine metabolism
-             "00350", #Tyrosine metabolism
-             "00360", #Phenylalanine metabolism
-             "00380", #Tryptophan metabolism
-             "00400" #Phenylalanine, tyrosine and tryptophan biosynthesis
-)
-
-
-
-#plot in a loop all the pathways of interest for each bin
-for (bin in unique(Bins_gene_calls_KEGG_modules$genome_name)) {
-  Bins_gene_calls_KEGG_modules_complete<- Bins_gene_calls_KEGG_modules %>%  
-    filter(genome_name == bin & module_is_complete == "True") 
-  
-  pathview(gene.data = Bins_gene_calls_KEGG_modules_complete$ko, 
-           pathway.id =pathways,
-           species = "ko", 
-           keys.align = "y", 
-           kegg.native = T, both.dirs = TRUE,
-           discrete	=list(gene=TRUE),
-           res = 300, cex = 0.25,
-           out.suffix = bin)
-}
+#Bins_gene_calls_KEGG_modules %>%  
+#  mutate(colour = "yellow") %>% 
+#  select("ko","colour") %>% 
+#  unique() %>% 
+#  write.table("data/KEGG/Bin_ko.txt",
+#              row.names = FALSE,
+#              col.names = FALSE,quote = FALSE)
 
 ############################################################################
 #explore each bin manualy
 ############################################################################
 
 #Bin 84_1 - Pseudoalteromonas phenolica - length 3.92Mbp (C93/R0)
-
 Bin_84_1_KEGG_modules <- Bins_gene_calls_KEGG_modules %>% 
   filter(genome_name == "Bin_84_1" & module_completeness >0.70) %>% 
   select("genome_name","kegg_module", "module_category", "module_subcategory", 
@@ -233,3 +161,63 @@ Bin_150_1_1_KEGG_modules <- Bins_gene_calls_KEGG_modules %>%
          "module_completeness","contig","gene_caller_id","ko","ko_definition")
 
 
+
+
+
+############################################################################
+#plot the pathways of interest for each bin
+############################################################################
+#pathways of interest
+pathways<- c("00010", #Glycolysis / Gluconeogenesis
+             "00020", #TCA cycle
+             "01200", #carbon metabolism
+             "00190", #Oxidative phosphorylation
+             "00071", #Fatty acid degradation
+             "00250", #Alanine, aspartate and glutamate metabolism
+             "00260", #Glycine, serine and threonine metabolism
+             "00270", #Cysteine and methionine metabolism
+             "00280", #Valine, leucine and isoleucine degradation
+             "00310", #Lysine degradation
+             "00330", #Arginine and proline metabolism
+             "00340", #Histidine metabolism
+             "00350", #Tyrosine metabolism
+             "00360", #Phenylalanine metabolism
+             "00380", #Tryptophan metabolism
+             "00400" #Phenylalanine, tyrosine and tryptophan biosynthesis
+)
+
+
+#plot in a loop all the pathways of interest for each bin
+for (bin in unique(Bins_gene_calls_KEGG_modules$genome_name)) {
+  Bins_gene_calls_KEGG_modules_complete<- Bins_gene_calls_KEGG_modules %>%  
+    filter(genome_name == bin & module_is_complete == "True") 
+  
+  pathview(gene.data = Bins_gene_calls_KEGG_modules_complete$ko, 
+           pathway.id =pathways,
+           species = "ko", 
+           keys.align = "y", 
+           kegg.native = T, both.dirs = TRUE,
+           discrete	=list(gene=TRUE),
+           res = 300, cex = 0.25,
+           out.suffix = bin,
+           kegg.dir="./Figures/KEGG/")
+}
+
+
+
+#to directly view the pathway map
+see_pathview <- function(..., save_image = FALSE)
+{
+  msg <- capture.output(pathview::pathview(...), type = "message")
+  msg <- grep("image file", msg, value = T)
+  filename <- sapply(strsplit(msg, " "), function(x) x[length(x)])
+  img <- png::readPNG(filename)
+  grid::grid.raster(img)
+  if(!save_image) invisible(file.remove(filename))
+}
+
+see_pathview(gene.data = gse16873.d[, 1], 
+             pathway.id = demo.paths$sel.paths[1],
+             species = "hsa", 
+             out.suffix = "gse16873", 
+             kegg.native = T)
