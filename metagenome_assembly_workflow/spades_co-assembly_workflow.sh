@@ -10,7 +10,7 @@ conda activate anvio_7.1
 #Set up the path to the working directory and the scripts directory
 DECOMB_git=/scratch/oceanography/efadeev/20220302_DECOMB/DECOMB_git
 
-WORKDIR=/home/project/oceanography/DECOMB/metaG_anvio
+WORKDIR=/scratch/oceanography/efadeev/DECOMB/analysis/metaG_anvio
 cd $WORKDIR
 
 #export sequences from bam files, run QC and trim adapters
@@ -113,7 +113,7 @@ anvi-refine -p $WORKDIR/05_ANVIO/SPAdes/merged_profile/PROFILE.db -c $WORKDIR/05
 
 #Bin 50_sub
 anvi-refine -p $WORKDIR/05_ANVIO/SPAdes/merged_profile/PROFILE.db -c $WORKDIR/05_ANVIO/spades.db -C DAS_Tool \
--b Bin_189 --server-only -P 5678
+-b Bin_50_sub --server-only -P 5678
 #Refined into Bin_50_sub_1 UBA7446 sp002470745 (Flavobacteriales) - length 1.09Mbp (C71.8/R8.5)
 
 #Bin METABAT_111
