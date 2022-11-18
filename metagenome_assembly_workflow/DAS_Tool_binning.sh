@@ -4,8 +4,8 @@
 #SBATCH --cpus-per-task=40
 #SBATCH --mem=100GB
 #SBATCH --mail-user=eduard.fadeev@univie.ac.at
-#SBATCH --output=/proj/DECOMB/analysis/metaG_anvio/Log/%x-%j.out
-#SBATCH --error=/proj/DECOMB/analysis/metaG_anvio/Log/%x-%j.err
+#SBATCH --output=/scratch/oceanography/efadeev/DECOMB/analysis/metaG_anvio/Log/%x-%j.out
+#SBATCH --error=/scratch/oceanography/efadeev/DECOMB/analysis/metaG_anvio/Log/%x-%j.err
 
 #load module
 module unload R
@@ -14,7 +14,7 @@ module load ncbiblast/2.2.26
 module load dastool/1.1.0
 
 #Set up the path to the working directory
-WORKDIR=/proj/DECOMB/analysis/metaG_anvio
+WORKDIR=/scratch/oceanography/efadeev/DECOMB/analysis/metaG_anvio
 cd $WORKDIR
 
 DAS_Tool -i $WORKDIR/06_BINS/DAS_Tool/spades_metabat2_contig.txt,$WORKDIR/06_BINS/DAS_Tool/spades_concoct_contig.txt -l metabat,concoct \

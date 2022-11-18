@@ -4,11 +4,11 @@
 #SBATCH --cpus-per-task=10
 #SBATCH --mem=40GB
 #SBATCH --mail-user=dr.eduard.fadeev@gmail.com
-#SBATCH --output=/proj/DECOMB/analysis/metaG_anvio/Log/%x-%j.out
-#SBATCH --error=/proj/DECOMB/analysis/metaG_anvio/Log/%x-%j.err
+#SBATCH --output=/scratch/oceanography/efadeev/DECOMB/analysis/metaG_anvio/Log/%x-%j.out
+#SBATCH --error=/scratch/oceanography/efadeev/DECOMB/analysis/metaG_anvio/Log/%x-%j.err
 
 #Set up the path to the working directory
-WORKDIR=/proj/DECOMB/analysis/metaG_anvio
+WORKDIR=/scratch/oceanography/efadeev/DECOMB/analysis/metaG_anvio
 cd $WORKDIR
 
 #summarize refined bins

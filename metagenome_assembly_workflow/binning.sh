@@ -15,7 +15,7 @@ module load metabat/2.15
 module load concoct/1.1.0-py37
 
 #Set up the path to the working directory
-WORKDIR=/home/project/oceanography/DECOMB/metaG_anvio
+WORKDIR=/scratch/oceanography/efadeev/DECOMB/analysis/metaG_anvio
 cd $WORKDIR
 
 #binning with concoct
