@@ -8,7 +8,7 @@ module load conda
 conda activate anvio_7.1
 
 #Set up the path to the working directory and the scripts directory
-DECOMB_git=/scratch/oceanography/efadeev/20220302_DECOMB/DECOMB_git
+DECOMB_git=/scratch/oceanography/efadeev/DECOMB/DECOMB_git
 
 WORKDIR=/scratch/oceanography/efadeev/DECOMB/analysis/metaG_anvio
 cd $WORKDIR
@@ -140,8 +140,8 @@ anvi-import-collection --collection-name Refined_DAS_bins \
                         
 
 #add taxonomy to each bin for visualization
-awk '{print $1,$11}' $WORKDIR/06_BINS/Refined_DAS_bins/bins_summary.txt > $WORKDIR/06_BINS/Refined_DAS_bins_tax.txt
-sed -i "1s/.*/item_name categorical_1/" $WORKDIR/06_BINS/Refined_DAS_bins_tax.txt
+awk '{print $1,$11,$12}' $WORKDIR/06_BINS/Refined_DAS_bins/bins_summary.txt > $WORKDIR/06_BINS/Refined_DAS_bins_tax.txt
+sed -i "1s/.*/item_name Order Family/" $WORKDIR/06_BINS/Refined_DAS_bins_tax.txt
 sed -i 's/ /\t/g' $WORKDIR/06_BINS/Refined_DAS_bins_tax.txt
 
 #explore the selected bins collection
@@ -151,11 +151,18 @@ anvi-interactive -p $WORKDIR/05_ANVIO/SPAdes/merged_profile/PROFILE.db -c $WORKD
 #summarize and export the bins for further analysis
 sbatch $DECOMB_git/metagenome_assembly_workflow/sum_refined_bins.sh
 
+#generate table with gene calls per bin
+readarray -t BINS < $WORKDIR/06_BINS/Refined_bins.txt
+
+echo -e "Bin\tcontig\tgene_callers_id" > $WORKDIR/06_BINS/selected-bins-gene-calls.txt
+for bin in ${BINS[@]}; do 
+sed '1d' $WORKDIR/06_BINS/REFINED/$bin/$bin-gene-calls.txt | awk -v b=$bin '{print b"\t"$2"\t"$1}' >> $WORKDIR/06_BINS/selected-bins-gene-calls.txt
+done
+
 #the gff3 and fasta files were using for generating genbank files and annotation using RAST server
 
 #check bins completness with checkM using the fasta files
 sbatch $DECOMB_git/metagenome_assembly_workflow/bins_checkm.sh
-
 
 ################################
 #Metabolic reconstruction of each bin
