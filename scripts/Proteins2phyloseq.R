@@ -15,6 +15,18 @@ require(phyloseq)
 gene_annotations_df <- read.csv("data/metagenome/spades-gene-calls.txt",
                                 sep="\t", h= T) 
 
+#import gene taxonomy
+gene_taxa_df<- read.csv("data/metagenome/spades-genes-taxonomy.txt",
+                        sep="\t", h= T)  %>% 
+                left_join(read.csv("data/metagenome/spades-tax-names.txt",sep="\t", h= T), 
+                          by = "taxon_id") %>% 
+                dplyr::rename(Class = t_order ,Order = t_class,
+                              Phylum = t_phylum, Family = t_family,
+                              Genus = t_genus) #switch columns due to some taxonomy parsing bug in anvio
+
+
+
+#import functional annotations
 source_files <- list.files(path = "data/metagenome", 
                            pattern = "-.*functions\\.txt",
                            full.names = TRUE)
@@ -43,6 +55,7 @@ annotations_df <- annotations_list %>%
 gene_meta_df <- gene_annotations_df %>% 
   select(gene_callers_id, contig, start, stop, partial, aa_sequence) %>% 
   merge(annotations_df, by = "gene_callers_id") %>% 
+  merge(gene_taxa_df, by = "gene_callers_id") %>% 
   mutate(prot_length = nchar(aa_sequence)) %>% 
   mutate(rows = gene_callers_id) %>% 
   tibble::column_to_rownames('rows')
@@ -62,9 +75,12 @@ samples_df <- read.csv("data/metaproteome/DE-COMB_all_prot_InputFiles_corrected.
                        Treatment = case_when(gsub("[1-3]_.*","",File.Name)=="C" ~ "Control",
                                              gsub("[1-3]_.*","",File.Name)=="J" ~ "Jelly",
                                              gsub("0_.*","",File.Name)=="T" ~ "Inoculum"),
-                       Fraction = gsub("\\(.*|\\.raw","",gsub("C[1-3]_|J[1-3]_|T0_","",File.Name)),
-                       Replicate = gsub("C|J","",gsub("_.*","",File.Name))) %>% 
-                select(File.ID,Sample_name,Treatment,Fraction,Replicate)
+                       Fraction = gsub(" ","", gsub("\\(.*|\\.raw","",gsub("C[1-3]_|J[1-3]_|T0_","",File.Name))),
+                       Replicate = gsub("C|J","",gsub("_.*","",File.Name)),
+                       Run = case_when(grepl("_2", Sample_name) ~ "B",
+                                              TRUE ~ "A"),
+                       SampleID = gsub("_2","",Sample_name)) %>% 
+                select(File.ID,SampleID,Sample_name,Treatment,Fraction,Replicate,Run)
 
  
 
