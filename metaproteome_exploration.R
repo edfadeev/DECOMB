@@ -1,23 +1,14 @@
 ########################################
 #Metaproteome data analysis
 ########################################
-
-#set working directory
-#macOS
-wd <- "/Users/eduardfadeev/Google Drive (dr.eduard.fadeev@gmail.com)/DECOMB/"
-
-#Linux 
-wd <- "~/Data/Postdoc-Vienna/DECOMB/"
-
-#Windows
-wd <- "F:/My Drive/DECOMB/"
-
 #load libraries
 require(dplyr)
 require(tidyr)
 require(phyloseq)
 require(ggplot2)
 require(ggpubr)
+require(rstatix)
+
 require(DESeq2)
 require(vegan)
 require(pheatmap)
@@ -48,26 +39,27 @@ add_nsaf=function(ps, prot_length){
 }
 
 #load metaproteome phyloseq object
-metaP_obj0<- readRDS("data/metaP_ps_raw.rds")
-exoP_obj0<- readRDS("data/exoP_ps_raw.rds")
+metaP_obj0<- readRDS("data/metaproteome/metaP_ps_raw.rds")
+
+sample_data(metaP_obj0)$Fraction<- gsub(" ","", sample_data(metaP_obj0)$Fraction)
+
+
 
 ###################
 #Plot number of proteins per sample
 ###################
-#merge the metaP and exoP into a single phyloseq object
-all_prot_obj0 <- merge_phyloseq(metaP_obj0, exoP_obj0)
-
 # number of proteins per sample
-prot_per_sample <- estimate_richness(all_prot_obj0, split = TRUE, measures = "Observed") %>% 
+prot_per_sample <- estimate_richness(metaP_obj0, split = TRUE, measures = "Observed") %>% 
   mutate(Sample_name = row.names(.)) %>% 
-  left_join(sample_data(all_prot_obj0), by = "Sample_name") %>% 
-  separate(Sample_name, into = c("Sample_name","Fraction"), sep ="_")
+  left_join(sample_data(metaP_obj0), by = "Sample_name")
 
 prot_counts_bar.p<- list()
-for (frac in c("MP","exoP")){
-  sub<- prot_per_sample %>% dplyr::filter(Fraction ==frac)
-  prot_counts_bar.p[[frac]] <- ggplot(sub, aes(x = Sample_name, y = Observed,
-                                               fill = Type)) + 
+
+for (frac in c("MP","EH","EL")){
+  sub_df<- prot_per_sample %>% dplyr::filter(Fraction == frac)
+  
+  prot_counts_bar.p[[frac]] <- ggplot(sub_df, aes(x = Sample_name, y = Observed,
+                                               fill = Treatment)) + 
     facet_wrap(Fraction~.) +
     scale_fill_manual(values =c("T0"="gray50",
                                 "Jelly"="#019360",
@@ -82,51 +74,117 @@ for (frac in c("MP","exoP")){
           axis.title.x = element_blank(), axis.text.x = element_text(angle=90))
 }
 
-ggarrange(prot_counts_bar.p[["MP"]], prot_counts_bar.p[["exoP"]],
-          ncol = 2, nrow = 1, align = "hv")
+ggarrange(prot_counts_bar.p[["MP"]], prot_counts_bar.p[["EH"]],prot_counts_bar.p[["EL"]],
+          ncol = 3, nrow = 1, align = "hv")
 
 
 #save the plot
-ggsave(paste0(wd,"/R_figures/total_prot.pdf"), 
+ggsave(paste0(wd,"./Figures/total_prot.pdf"), 
        plot = last_plot(),
        units = "cm",
        width = 30, height = 15, 
        #scale = 1,
        dpi = 300)
 
+#test differences between runs
+prot_per_sample_test <- prot_per_sample   %>%
+  group_by(Fraction) %>% 
+  t_test(Observed ~ Run, paired = TRUE, p.adjust.method = "BH") %>%
+  add_significance()
+
+
+###################
+#Protein overlaps between replicates
+###################
+y<- list()
+overlaps_table<- data.frame(Sample=character(), Run1=numeric(),Run2=numeric(), Overlap=numeric())
+
+for (i in sample_data(metaP_obj0)$SampleID){
+  sub_group <- subset_samples(metaP_obj0, SampleID == i) %>% 
+                  prune_taxa(taxa_sums(.)>0,.)
+  for (n in c("A","B")){
+    sub_sample <- subset_samples(sub_group, Run == n)
+    sub_sample <- prune_taxa(taxa_sums(sub_sample)>0,sub_sample)
+    y[[paste(i,n, sep = "_")]] <- as.character(row.names(otu_table(sub_sample)))
+  }
+  overlap<- VennDiagram::calculate.overlap(y)
+  overlap.df<- data.frame(Sample= paste(i), Run1 = length(overlap$a1),Run2 = length(overlap$a2), Overlap= length(overlap$a3))
+  overlaps_table<- rbind(overlaps_table, overlap.df)
+  y<- list()
+}
+
+overlaps_table<- overlaps_table %>% unique() %>% 
+  mutate(Run1_prop = signif(100*Overlap/Run1, digits = 0),
+         Run2_prop = signif(100*Overlap/Run2, digits = 0),
+         Type = case_when(grepl("C",Sample) ==TRUE ~"Control", 
+                          grepl("J",Sample) ==TRUE ~"Jelly",
+                          grepl("T0",Sample) ==TRUE ~ "T0"))
+
+######################################
+#Sum the two technical replicates and merge the EL and EH fractions
+######################################
+#merge technical replicates
+metaP_tech_agg <- merge_samples(metaP_obj0, "SampleID", fun = sum)
+
+#generate aggregated metadata
+meta_agg <- as(sample_data(metaP_obj0),"data.frame") %>% 
+            select(SampleID, Replicate, Fraction, Treatment) %>% 
+            unique() %>% 
+            mutate(Fraction = case_when(Fraction %in% c("EL","EH") ~ "exoP",
+                                        TRUE ~ "MP"),
+                   Sample = paste(Treatment,Replicate, Fraction, sep ="_"))
+
+sample_data(metaP_tech_agg)<- sample_data(meta_agg)
+
+#merge exoP fractions
+metaP_agg <- merge_samples(metaP_tech_agg, "Sample", fun = sum)
+
+#generate aggregated metadata
+meta_agg <- as(sample_data(metaP_tech_agg),"data.frame") %>% 
+  select(Sample, Fraction, Replicate, Treatment) %>% 
+  unique() %>% 
+  mutate(Group = paste(Treatment, Replicate, sep ="_"))
+
+rownames(meta_agg) <- meta_agg$Sample 
+
+sample_data(metaP_agg)<- sample_data(meta_agg)
+
+###################
+#Summary of merged samples
+###################
+prot_per_sample_agg <- estimate_richness(metaP_agg, split = TRUE, measures = "Observed") %>% 
+  mutate(Sample = row.names(.)) %>% 
+  left_join(sample_data(metaP_agg), by = "Sample")
+
 ###################
 #Taxonomic compositions
 ###################
 #conduct NSAF transformation
-metaP_obj0_nsaf<- add_nsaf(metaP_obj0, "prot_length")
-exoP_obj0_nsaf<- add_nsaf(exoP_obj0, "prot_length")
-
-all_prot_obj0_nsaf<- merge_phyloseq(metaP_obj0_nsaf,exoP_obj0_nsaf)
+metaP_agg_nsaf<- add_nsaf(metaP_agg, "prot_length")
 
 #melt phyloseq into a dataframe for ploting
-prot_nsaf.long <- psmelt(all_prot_obj0_nsaf) %>% 
-  separate(Sample_name, sep ="_", into = c("Sample","Fraction"))
+prot_nsaf.long <- psmelt(metaP_agg_nsaf) 
 
 #sum up each taxa
-prot_nsaf.class.agg <- prot_nsaf.long %>% group_by(Fraction,Sample, Class, Order) %>% 
+prot_nsaf.class.agg <- prot_nsaf.long %>% group_by(Fraction, Group, Class, Order) %>% 
   summarize(Tot.abundance = sum(Abundance)) %>% 
   mutate(Fraction = factor(Fraction, levels =c("MP","exoP")))
 
 #remove below 1% ra
-taxa_classes <- sort(as.character(unique(prot_nsaf.class.agg$Order[!prot_nsaf.class.agg$Tot.abundance<0.01])))
+taxa_classes <- sort(as.character(unique(prot_nsaf.class.agg$Class[!prot_nsaf.class.agg$Tot.abundance<0.01])))
 
-prot_nsaf.class.agg$Order[prot_nsaf.class.agg$Tot.abundance<0.01] <- "Other taxa"
-prot_nsaf.class.agg$Order[is.na(prot_nsaf.class.agg$Order)] <- "Other taxa"
+prot_nsaf.class.agg$Class[prot_nsaf.class.agg$Tot.abundance<0.01] <- "Other taxa"
+prot_nsaf.class.agg$Class[is.na(prot_nsaf.class.agg$Class)] <- "Other taxa"
 
-prot_nsaf.class.agg$Order <- factor(prot_nsaf.class.agg$Order,
+prot_nsaf.class.agg$Class <- factor(prot_nsaf.class.agg$Class,
                                       levels=c(taxa_classes,"Other taxa"))
 
 prot_tax_comp.p<- ggplot(prot_nsaf.class.agg, 
-       aes(x = Sample, y = Tot.abundance,
-           fill = Order)) + 
+       aes(x = Group, y = Tot.abundance,
+           fill = Class)) + 
   facet_grid(.~Fraction, space= "fixed") +
   geom_bar(position="stack", stat="identity")+
-  scale_fill_manual(values = tol21rainbow)+ 
+  scale_fill_manual(values = class_col)+ 
   #guides(fill = guide_legend(reverse = FALSE, keywidth = 1, keyheight = 1)) +
   ylab("Protein proportions (>1%) \n")+
   geom_hline(aes(yintercept=-Inf)) + 
@@ -140,12 +198,66 @@ prot_tax_comp.p<- ggplot(prot_nsaf.class.agg,
 
 
 #save the plot
-ggsave(paste0(wd,"R_figures/metaP_tax_order_comp.pdf"), 
+ggsave("./Figures/metaP_tax_order_comp.pdf", 
        plot = prot_tax_comp.p,
        units = "cm",
        width = 30, height = 15, 
        #scale = 1,
        dpi = 300)
+
+###################
+#Functional compositions
+###################
+#sum up each COG
+prot_nsaf.COG.agg <- prot_nsaf.long %>% group_by(Fraction, Group, COG20_CATEGORY_function) %>% 
+  mutate(COG20_CATEGORY_function = case_when(is.na(COG20_CATEGORY_function) ~ "Unk",
+                                             TRUE ~ COG20_CATEGORY_function)) %>% 
+  summarize(Tot.abundance = sum(Abundance)) %>% 
+  mutate(Fraction = factor(Fraction, levels =c("MP","exoP")))
+
+#remove below 1% ra
+COG_categories <- sort(as.character(unique(prot_nsaf.COG.agg$COG20_CATEGORY_function[!prot_nsaf.COG.agg$Tot.abundance<0.02])))
+
+prot_nsaf.COG.agg$COG20_CATEGORY_function[prot_nsaf.COG.agg$Tot.abundance<0.02] <- "Other"
+prot_nsaf.COG.agg$COG20_CATEGORY_function[is.na(prot_nsaf.COG.agg$COG20_CATEGORY_function)] <- "Other"
+
+prot_nsaf.COG.agg$COG20_CATEGORY_function <- factor(prot_nsaf.COG.agg$COG20_CATEGORY_function,
+                                    levels=c(COG_categories,"Other"))
+
+#large colours range
+require(RColorBrewer)
+qual_col_pals = brewer.pal.info[brewer.pal.info$category == 'qual',]
+col_vector = unlist(mapply(brewer.pal, qual_col_pals$maxcolors, rownames(qual_col_pals)))
+
+
+prot_COG.p<- ggplot(prot_nsaf.COG.agg, 
+                         aes(x = Group, y = Tot.abundance,
+                             fill = COG20_CATEGORY_function)) + 
+  facet_grid(.~Fraction, space= "fixed") +
+  geom_bar(position="stack", stat="identity")+
+  scale_fill_manual(values = col_vector)+ 
+  #guides(fill = guide_legend(reverse = FALSE, keywidth = 1, keyheight = 1)) +
+  ylab("Protein proportions (>1%) \n")+
+  geom_hline(aes(yintercept=-Inf)) + 
+  geom_vline(aes(xintercept=-Inf)) +
+  geom_vline(aes(xintercept=Inf))+
+  theme_bw()+
+  theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank(), 
+        axis.line = element_line(colour = "black"),axis.text.x = element_text(angle = 90),
+        text=element_text(size=14),legend.position = "bottom", 
+        axis.title.x = element_blank())
+
+
+#save the plot
+ggsave("./Figures/metaP_COG20_comp.pdf", 
+       plot = prot_COG.p,
+       units = "cm",
+       width = 30, height = 15, 
+       #scale = 1,
+       dpi = 300)
+
+
+
 
 
 #print session info and clean the workspace
