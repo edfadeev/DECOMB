@@ -34,27 +34,31 @@ anvi-export-table --table genes_taxonomy -o $WORKDIR/05_ANVIO/spades-genes-taxon
 #export taxonomy table
 anvi-export-table --table taxon_names -o $WORKDIR/05_ANVIO/spades-tax-names.txt $WORKDIR/05_ANVIO/spades.db
 
-#export AAs of all the gene calls
-anvi-get-sequences-for-gene-calls -c $WORKDIR/05_ANVIO/spades.db --report-extended-deflines --get-aa-sequences -o $WORKDIR/05_ANVIO/
-
-sed -n '2,$p' $WORKDIR/05_ANVIO/spades-gene-calls.txt | sort -n -k 1 > $WORKDIR/05_ANVIO/spades-gene-calls-sorted.txt
+#export all the gene calls
+anvi-export-gene-calls -c $WORKDIR/05_ANVIO/spades.db --gene-caller prodigal -o $WORKDIR/05_ANVIO/spades-gene-calls.txt
 
 #generate AAs reference fasta file for the entire metagenome
-awk '{print ">"$1"_"$2"\n"$10}' $WORKDIR/05_ANVIO/spades-gene-calls-sorted.txt > $WORKDIR/05_ANVIO/spades-AAs-ref-db.fasta
+awk '{print ">"$1"_"$2"\n"$10}' $WORKDIR/05_ANVIO/spades-gene-calls.txt > $WORKDIR/05_ANVIO/spades-AAs-ref-db.fasta
 
 #export functions of each gene
-
 DATABASES=("COG20_FUNCTION" "Pfam"  "GO" "InterPro" "Hamap")
 
 for db in ${DATABASES[@]}; do
-anvi-export-functions -c 05_ANVIO/spades.db --annotation-sources $db -o 05_ANVIO/spades-$db-functions.txt
-
+anvi-export-functions -c $WORKDIR/05_ANVIO/spades.db --annotation-sources $db -o $WORKDIR/05_ANVIO/spades-$db-functions.txt
 #remove spaces
-sed -e 's/ /_/g' 05_ANVIO/spades-$db-functions.txt > 05_ANVIO/spades-$db-functions-corrected.txt
+sed -i -e 's/ /_/g' $WORKDIR/05_ANVIO/spades-$db-functions.txt 
 
-#sort the table
-sed -n '2,$p' 05_ANVIO/spades-$db-functions-corrected.txt | sort -n -k 1 > 05_ANVIO/spades-$db-functions-sorted.txt
 done
+
+#merge all databases into a single
+
+
+#> $WORKDIR/05_ANVIO/spades-$db-functions-corrected.txt
+#sort the table
+#sed -n '2,$p' $WORKDIR/05_ANVIO/spades-$db-functions.txt | sort -n -k 1 > $WORKDIR/05_ANVIO/spades-$db-functions-sorted.txt
+
+#probably not needed anymore
+#sed -n '2,$p' $WORKDIR/05_ANVIO/spades-gene-calls.txt | sort -n -k 1 > $WORKDIR/05_ANVIO/spades-gene-calls-sorted.txt
 
 ################################
 #Produce automatic bins
