@@ -41,7 +41,7 @@ anvi-export-gene-calls -c $WORKDIR/05_ANVIO/spades.db --gene-caller prodigal -o 
 awk '{print ">"$1"_"$2"\n"$10}' $WORKDIR/05_ANVIO/spades-gene-calls.txt > $WORKDIR/05_ANVIO/spades-AAs-ref-db.fasta
 
 #export functions of each gene
-DATABASES=("COG20_FUNCTION" "Pfam"  "GO" "InterPro" "Hamap")
+DATABASES=("COG20_FUNCTION" "Pfam"  "GO" "InterPro" "Hamap" "KEGG_Class" "KeggGhostKoala" "KOfam" "COG20_CATEGORY" "KEGG_Module" "COG20_PATHWAY")
 
 for db in ${DATABASES[@]}; do
 anvi-export-functions -c $WORKDIR/05_ANVIO/spades.db --annotation-sources $db -o $WORKDIR/05_ANVIO/spades-$db-functions.txt
