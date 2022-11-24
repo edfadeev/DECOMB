@@ -4,8 +4,8 @@
 #SBATCH --cpus-per-task=20
 #SBATCH --mem=250GB
 #SBATCH --mail-user=dr.eduard.fadeev@gmail.com
-#SBATCH --output=/proj/DECOMB/analysis/process_metaG/Log/%x-%j.out
-#SBATCH --error=/proj/DECOMB/analysis/process_metaG/Log/%x-%j.err
+#SBATCH --output=/scratch/oceanography/efadeev/DECOMB/analysis/metaG_anvio/Log/%x-%j.out
+#SBATCH --error=/scratch/oceanography/efadeev/DECOMB/analysis/metaG_anvio/Log/%x-%j.err
 
 #load module
 module load spades/3.14.1

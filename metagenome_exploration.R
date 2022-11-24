@@ -1,22 +1,11 @@
-########################################
-#Plot KEGG pathways of each bin
-########################################
-
-#set working directory
-#macOS
-wd <- "/Users/eduardfadeev/Google Drive (dr.eduard.fadeev@gmail.com)/DECOMB/"
-
-#Linux 
-wd <- "~/Data/Postdoc-Vienna/DECOMB/"
-
-#Windows
-wd <- "D:/Postdoc-Vienna/DECOMB/"
-
 #load libraries
 require(dplyr)
 require(tidyr)
-require(phyloseq)
 require(ggplot2)
+
+
+require(phyloseq)
+
 require(ggpubr)
 require(DESeq2)
 require(vegan)
@@ -33,47 +22,33 @@ tol21rainbow<- c("#771155", "#AA4488","#CC99BB","#114477",
 ###################
 #Explore taxonomic composition of the metagenome
 ###################
-#taxonomy table
-tax_table <- read.csv(paste(wd,"metaG_analysis/metaG_anvio/05_ANVIO/spades-tax-names.txt",sep=""),
-                      sep="\t", h= T)
-#taxonomic classification
-gene_tax <- read.csv(paste(wd,"metaG_analysis/metaG_anvio/05_ANVIO/spades-genes-taxonomy.txt",sep=""),
-                           sep="\t", h= T)
-
-
 #generate full taxonomy table
-gene_tax_table <- merge(gene_tax,tax_table, by ="taxon_id", all.x = TRUE) %>% 
-                    rename("t_order"="Class","t_class"="Order") #switch columns due to some taxonomy parsing bug in anvio
+gene_tax_table <- merge(read.csv("data/metagenome/spades-tax-names.txt",sep="\t", h= T),#taxonomy table
+                        read.csv("data/metagenome/spades-genes-taxonomy.txt",sep="\t", h= T),#taxonomic classification
+                        by ="taxon_id", all.x = TRUE) %>% 
+                  dplyr::rename(Class = t_order ,Order = t_class) #switch columns due to some taxonomy parsing bug in anvio
 
-
-#summarize number of genes per taxon
-gene_tax_table_summary <-gene_tax_table %>% group_by(Class) %>% 
-                            summarize(Total = n())
-
-
-#remove taxa that had less than 1000 genes or an unknown taxonomy
-gene_tax_table_summary_fixed <- gene_tax_table_summary %>% 
-                                  mutate(Class= case_when(Total < 1000 ~ "Other taxa (<1000 genes)",
-                                                          grepl('Unknown', Class) ~ "Other taxa (<1000 genes)",
-                                                          TRUE~ Class))
+#summarize number of genes per taxon and remove taxa that had less than 1000 genes or an unknown class
+gene_tax_table_summary <-gene_tax_table %>% 
+                            group_by(Class) %>% 
+                            summarize(Total = n()) %>% 
+                            mutate(Class= case_when(Total < 1000 ~ "Other taxa (<1000 genes)",
+                                                    grepl('Unknown', Class) ~ "Unknown class",
+                                                    TRUE~ Class))
 #fix the order of the classes for the figure
-taxa_classes <- unique(gene_tax_table_summary_fixed$Class)
+taxa_classes <- unique(gene_tax_table_summary$Class)
 taxa_classes<- taxa_classes[!taxa_classes %in% c("Other taxa (<1000 genes)")]
-
-gene_tax_table_summary_fixed$Class <- factor(gene_tax_table_summary_fixed$Class,
+gene_tax_table_summary$Class <- factor(gene_tax_table_summary$Class,
                                  levels=c(taxa_classes,"Other taxa (<1000 genes)"))
 
-
-#plot taxonomy composition
-
-#summarize once more for smoother visualization with black lines
-gene_tax_table_summary_fixed <-gene_tax_table_summary_fixed %>% group_by(Class) %>% 
-  summarize(Total.genes = sum(Total))
-
-tax_comp.p <- ggplot(gene_tax_table_summary_fixed, aes(x= 1, y= Total.genes, fill = Class))+
+#summarize once more for smoother visualization and plot
+gene_tax_table_summary %>% 
+  group_by(Class) %>% 
+  summarize(Total.genes = sum(Total)) %>%
+  ggplot(aes(x= 1, y= Total.genes, fill = Class))+
   geom_bar(stat = "identity", color='black')+
   #scale_y_continuous(breaks = cumsum(gene_tax_table_summary_fixed$Total.genes) - gene_tax_table_summary_fixed$Total.genes/2,#produce coordinates for the annotation 
-   #                  labels = gene_tax_table_summary_fixed$Class)+ # the labels
+  #                  labels = gene_tax_table_summary_fixed$Class)+ # the labels
   coord_polar(theta ="y", direction = 1)+
   scale_fill_manual(values = tol21rainbow)+
   theme_bw()+
@@ -83,11 +58,10 @@ tax_comp.p <- ggplot(gene_tax_table_summary_fixed, aes(x= 1, y= Total.genes, fil
         axis.title=element_blank(),  # the axis labels
         axis.text.y=element_blank(),
         text=element_text(size=14),legend.position = "bottom")
-  
 
 #save the plot
-ggsave(paste0(wd,"/R_figures/metaG_tax_comp.pdf"), 
-       plot = tax_comp.p,
+ggsave("/Figures/metaG_tax_comp.pdf",
+       plot = last_plot(),
        units = "cm",
        width = 30, height = 30, 
        #scale = 1,
@@ -98,43 +72,29 @@ ggsave(paste0(wd,"/R_figures/metaG_tax_comp.pdf"),
 ###################
 #Import metabolic estimates for each gene
 ###################
-metaG_kofam_hits <- read.csv(paste(wd,"metaG_analysis/metaG_anvio/05_ANVIO/spades-Kofam_hits.txt",sep=""), sep="\t", h= T)
 
-metaG_KEGG_modules <- read.csv(paste(wd,"metaG_analysis/metaG_anvio/05_ANVIO/spades-Kofam_modules.txt",sep=""), sep="\t", h= T)
+metaG_KEGG_modules_by_gene <- read.csv("data/metagenome/spades-Kofam_modules.txt", sep="\t", h= T)%>%
+  tidyr::separate_rows(gene_caller_ids_in_module, sep = ',')
 
-
-metaG_KEGG_modules_by_gene <- metaG_KEGG_modules %>%
-                                 tidyr::separate_rows(gene_caller_ids_in_module, sep = ',')
-                                
-
-#summarize KEGG modules
+#summarize KEGG modules and remove modules with less than 1000 genes
 metaG_KEGG_modules_summary<- metaG_KEGG_modules_by_gene %>% 
-                                filter(module_class =="Pathway modules") %>% 
-                                  group_by(module_class, module_subcategory) %>% 
-                                    summarize(Total.genes = n())
-
-
-
-#remove modules with less than 1000 genes
-metaG_KEGG_modules_summary_fixed <- metaG_KEGG_modules_summary %>% 
-  mutate(module_subcategory= case_when(Total.genes < 1000 ~ "Other (<1000 genes)",
-                          TRUE~ module_subcategory))
+  filter(module_class =="Pathway modules") %>% 
+  group_by(module_class, module_subcategory) %>% 
+  summarize(Total.genes = n()) %>% 
+  mutate(module_subcategory= case_when(Total.genes < 1000 ~ "Other modules (<1000 genes)",
+                                       TRUE~ module_subcategory))
 
 #fix the order of the classes for the figure
-KEGG_modules <- unique(metaG_KEGG_modules_summary_fixed$module_subcategory)
-KEGG_modules<- KEGG_modules[!KEGG_modules %in% c("Other (<1000 genes)")]
-
-metaG_KEGG_modules_summary_fixed$module_subcategory <- factor(metaG_KEGG_modules_summary_fixed$module_subcategory,
-                                             levels=c(KEGG_modules,"Other (<1000 genes)"))
-
-#plot only pathway modules
-metaG_KEGG_modules_summary_pathway<- metaG_KEGG_modules_summary_fixed %>% filter(module_class =="Pathway modules")
+KEGG_modules <- unique(metaG_KEGG_modules_summary$module_subcategory)
+KEGG_modules<- KEGG_modules[!KEGG_modules %in% c("Other modules (<1000 genes)")]
+metaG_KEGG_modules_summary$module_subcategory <- factor(metaG_KEGG_modules_summary$module_subcategory,
+                                       levels=c(KEGG_modules,"Other modules (<1000 genes)"))
 
 #summarize once more for smoother visualization with black lines
-metaG_KEGG_modules_summary_pathway <-metaG_KEGG_modules_summary_pathway %>% group_by(module_subcategory) %>% 
-  summarize(Total.genes = sum(Total.genes))
-
-KEGG_modules_comp.p <- ggplot(metaG_KEGG_modules_summary_pathway, aes(x= 1, y= Total.genes, fill = module_subcategory))+
+metaG_KEGG_modules_summary %>% 
+  group_by(module_subcategory) %>% 
+  summarize(Total.genes = sum(Total.genes)) %>% 
+  ggplot(aes(x= 1, y= Total.genes, fill = module_subcategory))+
   geom_bar(stat = "identity", color='black')+
   #scale_y_continuous(breaks = cumsum(gene_tax_table_summary_fixed$Total.genes) - gene_tax_table_summary_fixed$Total.genes/2,#produce coordinates for the annotation 
   #                  labels = gene_tax_table_summary_fixed$Class)+ # the labels
@@ -148,14 +108,8 @@ KEGG_modules_comp.p <- ggplot(metaG_KEGG_modules_summary_pathway, aes(x= 1, y= T
         axis.text=element_blank(),
         text=element_text(size=14),legend.position = "bottom")
 
-
-#save combined figure
-ggarrange(tax_comp.p, KEGG_modules_comp.p, #heights = c(2,1.2),
-          ncol = 2, nrow = 1, align = "v", legend = "bottom",
-          legend.grob = do.call(rbind, c(list(get_legend(tax_comp.p),get_legend(KEGG_modules_comp.p)), size="first")))
-
 #save the plot
-ggsave(paste0(wd,"/R_figures/metaG_taxa_KEGG_combined.pdf"), 
+ggsave("Figures/metaG_taxa_KEGG_combined.pdf", 
        plot = last_plot(),
        units = "cm",
        width = 30, height = 30, 
@@ -164,9 +118,19 @@ ggsave(paste0(wd,"/R_figures/metaG_taxa_KEGG_combined.pdf"),
 
 
 
+
+
+
+
 ################################################################################
 #merge the taxonomy with KEGG modules and other annotations for metaP analyses
 ################################################################################
+
+metaG_kofam_hits <- read.csv("data/metagenome/spades-Kofam_hits.txt", sep="\t", h= T)
+
+
+
+
 #gene annotation list by sources
 gene_ids <- read.csv(paste(wd,"metaG_analysis/metaG_anvio/05_ANVIO/spades-gene-calls.txt",sep=""),
                      sep="\t", h= T)

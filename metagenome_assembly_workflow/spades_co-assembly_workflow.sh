@@ -8,9 +8,9 @@ module load conda
 conda activate anvio_7.1
 
 #Set up the path to the working directory and the scripts directory
-DECOMB_git=/scratch/oceanography/efadeev/20220302_DECOMB/DECOMB_git
+DECOMB_git=/scratch/oceanography/efadeev/DECOMB/DECOMB_git
 
-WORKDIR=/home/project/oceanography/DECOMB/metaG_anvio
+WORKDIR=/scratch/oceanography/efadeev/DECOMB/analysis/metaG_anvio
 cd $WORKDIR
 
 #export sequences from bam files, run QC and trim adapters
@@ -34,27 +34,31 @@ anvi-export-table --table genes_taxonomy -o $WORKDIR/05_ANVIO/spades-genes-taxon
 #export taxonomy table
 anvi-export-table --table taxon_names -o $WORKDIR/05_ANVIO/spades-tax-names.txt $WORKDIR/05_ANVIO/spades.db
 
-#export AAs of all the gene calls
-anvi-get-sequences-for-gene-calls -c $WORKDIR/05_ANVIO/spades.db --report-extended-deflines --get-aa-sequences -o $WORKDIR/05_ANVIO/
-
-sed -n '2,$p' $WORKDIR/05_ANVIO/spades-gene-calls.txt | sort -n -k 1 > $WORKDIR/05_ANVIO/spades-gene-calls-sorted.txt
+#export all the gene calls
+anvi-export-gene-calls -c $WORKDIR/05_ANVIO/spades.db --gene-caller prodigal -o $WORKDIR/05_ANVIO/spades-gene-calls.txt
 
 #generate AAs reference fasta file for the entire metagenome
-awk '{print ">"$1"_"$2"\n"$10}' $WORKDIR/05_ANVIO/spades-gene-calls-sorted.txt > $WORKDIR/05_ANVIO/spades-AAs-ref-db.fasta
+awk '{print ">"$1"_"$2"\n"$10}' $WORKDIR/05_ANVIO/spades-gene-calls.txt > $WORKDIR/05_ANVIO/spades-AAs-ref-db.fasta
 
 #export functions of each gene
-
-DATABASES=("COG20_FUNCTION" "Pfam"  "GO" "InterPro" "Hamap")
+DATABASES=("COG20_FUNCTION" "Pfam"  "GO" "InterPro" "Hamap" "KEGG_Class" "KeggGhostKoala" "KOfam" "COG20_CATEGORY" "KEGG_Module" "COG20_PATHWAY")
 
 for db in ${DATABASES[@]}; do
-anvi-export-functions -c 05_ANVIO/spades.db --annotation-sources $db -o 05_ANVIO/spades-$db-functions.txt
-
+anvi-export-functions -c $WORKDIR/05_ANVIO/spades.db --annotation-sources $db -o $WORKDIR/05_ANVIO/spades-$db-functions.txt
 #remove spaces
-sed -e 's/ /_/g' 05_ANVIO/spades-$db-functions.txt > 05_ANVIO/spades-$db-functions-corrected.txt
+sed -i -e 's/ /_/g' $WORKDIR/05_ANVIO/spades-$db-functions.txt 
 
-#sort the table
-sed -n '2,$p' 05_ANVIO/spades-$db-functions-corrected.txt | sort -n -k 1 > 05_ANVIO/spades-$db-functions-sorted.txt
 done
+
+#merge all databases into a single
+
+
+#> $WORKDIR/05_ANVIO/spades-$db-functions-corrected.txt
+#sort the table
+#sed -n '2,$p' $WORKDIR/05_ANVIO/spades-$db-functions.txt | sort -n -k 1 > $WORKDIR/05_ANVIO/spades-$db-functions-sorted.txt
+
+#probably not needed anymore
+#sed -n '2,$p' $WORKDIR/05_ANVIO/spades-gene-calls.txt | sort -n -k 1 > $WORKDIR/05_ANVIO/spades-gene-calls-sorted.txt
 
 ################################
 #Produce automatic bins
@@ -113,7 +117,7 @@ anvi-refine -p $WORKDIR/05_ANVIO/SPAdes/merged_profile/PROFILE.db -c $WORKDIR/05
 
 #Bin 50_sub
 anvi-refine -p $WORKDIR/05_ANVIO/SPAdes/merged_profile/PROFILE.db -c $WORKDIR/05_ANVIO/spades.db -C DAS_Tool \
--b Bin_189 --server-only -P 5678
+-b Bin_50_sub --server-only -P 5678
 #Refined into Bin_50_sub_1 UBA7446 sp002470745 (Flavobacteriales) - length 1.09Mbp (C71.8/R8.5)
 
 #Bin METABAT_111
@@ -140,8 +144,8 @@ anvi-import-collection --collection-name Refined_DAS_bins \
                         
 
 #add taxonomy to each bin for visualization
-awk '{print $1,$11}' $WORKDIR/06_BINS/Refined_DAS_bins/bins_summary.txt > $WORKDIR/06_BINS/Refined_DAS_bins_tax.txt
-sed -i "1s/.*/item_name categorical_1/" $WORKDIR/06_BINS/Refined_DAS_bins_tax.txt
+awk '{print $1,$11,$12}' $WORKDIR/06_BINS/Refined_DAS_bins/bins_summary.txt > $WORKDIR/06_BINS/Refined_DAS_bins_tax.txt
+sed -i "1s/.*/item_name Order Family/" $WORKDIR/06_BINS/Refined_DAS_bins_tax.txt
 sed -i 's/ /\t/g' $WORKDIR/06_BINS/Refined_DAS_bins_tax.txt
 
 #explore the selected bins collection
@@ -151,11 +155,18 @@ anvi-interactive -p $WORKDIR/05_ANVIO/SPAdes/merged_profile/PROFILE.db -c $WORKD
 #summarize and export the bins for further analysis
 sbatch $DECOMB_git/metagenome_assembly_workflow/sum_refined_bins.sh
 
+#generate table with gene calls per bin
+readarray -t BINS < $WORKDIR/06_BINS/Refined_bins.txt
+
+echo -e "Bin\tcontig\tgene_callers_id" > $WORKDIR/06_BINS/selected-bins-gene-calls.txt
+for bin in ${BINS[@]}; do 
+sed '1d' $WORKDIR/06_BINS/REFINED/$bin/$bin-gene-calls.txt | awk -v b=$bin '{print b"\t"$2"\t"$1}' >> $WORKDIR/06_BINS/selected-bins-gene-calls.txt
+done
+
 #the gff3 and fasta files were using for generating genbank files and annotation using RAST server
 
 #check bins completness with checkM using the fasta files
 sbatch $DECOMB_git/metagenome_assembly_workflow/bins_checkm.sh
-
 
 ################################
 #Metabolic reconstruction of each bin
