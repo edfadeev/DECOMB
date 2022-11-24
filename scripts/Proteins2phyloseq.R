@@ -12,13 +12,13 @@ require(phyloseq)
 #import taxonomy and annotation of each gene in the reference metagenome
 ########################################
 #genes list
-gene_annotations_df <- read.csv("data/metagenome/spades-gene-calls.txt",
+gene_annotations_df <- read.csv("./data/metagenome/spades-gene-calls.txt",
                                 sep="\t", h= T) 
 
 #import gene taxonomy
-gene_taxa_df<- read.csv("data/metagenome/spades-genes-taxonomy.txt",
+gene_taxa_df<- read.csv("./data/metagenome/spades-genes-taxonomy.txt",
                         sep="\t", h= T)  %>% 
-                left_join(read.csv("data/metagenome/spades-tax-names.txt",sep="\t", h= T), 
+                left_join(read.csv("./data/metagenome/spades-tax-names.txt",sep="\t", h= T), 
                           by = "taxon_id") %>% 
                 dplyr::rename(Class = t_order ,Order = t_class,
                               Phylum = t_phylum, Family = t_family,
@@ -27,7 +27,7 @@ gene_taxa_df<- read.csv("data/metagenome/spades-genes-taxonomy.txt",
 
 
 #import functional annotations
-source_files <- list.files(path = "data/metagenome", 
+source_files <- list.files(path = "./data/metagenome", 
                            pattern = "-.*functions\\.txt",
                            full.names = TRUE)
 
@@ -67,7 +67,7 @@ gene_meta_df <- gene_annotations_df %>%
 #sed "s/F:\\\\EFadeev\\\\DECOMB_raw_data\\\\DECOMB-all\\\\//g"
 #DE-COMB_all_prot_InputFiles.txt > DE-COMB_all_prot_InputFiles_corrected.txt 
 
-samples_df <- read.csv("data/metaproteome/DE-COMB_all_prot_InputFiles_corrected.txt",
+samples_df <- read.csv("./data/metaproteome/DE-COMB_all_prot_InputFiles_corrected.txt",
                                 sep="\t", h= T) %>% 
                 mutate(File.Name = case_when(File.Name =="T0_EL_200616145603.raw" ~ "T0_EL (2).raw",
                                              TRUE ~ File.Name)) %>% 

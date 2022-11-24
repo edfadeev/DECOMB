@@ -8,9 +8,9 @@ require(phyloseq)
 require(ggplot2)
 require(ggpubr)
 require(rstatix)
-
 require(DESeq2)
 require(vegan)
+
 require(pheatmap)
 
 tol21rainbow<- c("#771155", "#AA4488","#CC99BB","#114477", 
@@ -41,10 +41,6 @@ add_nsaf=function(ps, prot_length){
 #load metaproteome phyloseq object
 metaP_obj0<- readRDS("data/metaproteome/metaP_ps_raw.rds")
 
-sample_data(metaP_obj0)$Fraction<- gsub(" ","", sample_data(metaP_obj0)$Fraction)
-
-
-
 ###################
 #Plot number of proteins per sample
 ###################
@@ -62,8 +58,8 @@ for (frac in c("MP","EH","EL")){
                                                fill = Treatment)) + 
     facet_wrap(Fraction~.) +
     scale_fill_manual(values =c("T0"="gray50",
-                                "Jelly"="#019360",
-                                "Control"="#A5081A"))+
+                                "Jelly"="red",
+                                "Control"="blue"))+
     geom_col()+
     ylab("# of proteins \n")+
     #scale_y_log10()+
@@ -79,7 +75,7 @@ ggarrange(prot_counts_bar.p[["MP"]], prot_counts_bar.p[["EH"]],prot_counts_bar.p
 
 
 #save the plot
-ggsave(paste0(wd,"./Figures/total_prot.pdf"), 
+ggsave("./Figures/total_prot.pdf", 
        plot = last_plot(),
        units = "cm",
        width = 30, height = 15, 
@@ -114,53 +110,95 @@ for (i in sample_data(metaP_obj0)$SampleID){
 }
 
 overlaps_table<- overlaps_table %>% unique() %>% 
-  mutate(Run1_prop = signif(100*Overlap/Run1, digits = 0),
-         Run2_prop = signif(100*Overlap/Run2, digits = 0),
+  mutate(Run1_prop = signif(Overlap/Run1, digits = 2),
+         Run2_prop = signif(Overlap/Run2, digits = 2),
          Type = case_when(grepl("C",Sample) ==TRUE ~"Control", 
                           grepl("J",Sample) ==TRUE ~"Jelly",
                           grepl("T0",Sample) ==TRUE ~ "T0"))
 
-######################################
-#Sum the two technical replicates and merge the EL and EH fractions
-######################################
-#merge technical replicates
-metaP_tech_agg <- merge_samples(metaP_obj0, "SampleID", fun = sum)
-
-#generate aggregated metadata
-meta_agg <- as(sample_data(metaP_obj0),"data.frame") %>% 
-            select(SampleID, Replicate, Fraction, Treatment) %>% 
-            unique() %>% 
-            mutate(Fraction = case_when(Fraction %in% c("EL","EH") ~ "exoP",
-                                        TRUE ~ "MP"),
-                   Sample = paste(Treatment,Replicate, Fraction, sep ="_"))
-
-sample_data(metaP_tech_agg)<- sample_data(meta_agg)
-
-#merge exoP fractions
-metaP_agg <- merge_samples(metaP_tech_agg, "Sample", fun = sum)
-
-#generate aggregated metadata
-meta_agg <- as(sample_data(metaP_tech_agg),"data.frame") %>% 
-  select(Sample, Fraction, Replicate, Treatment) %>% 
-  unique() %>% 
-  mutate(Group = paste(Treatment, Replicate, sep ="_"))
-
-rownames(meta_agg) <- meta_agg$Sample 
-
-sample_data(metaP_agg)<- sample_data(meta_agg)
 
 ###################
-#Summary of merged samples
+#Generate PCA plot 
 ###################
-prot_per_sample_agg <- estimate_richness(metaP_agg, split = TRUE, measures = "Observed") %>% 
-  mutate(Sample = row.names(.)) %>% 
-  left_join(sample_data(metaP_agg), by = "Sample")
+#conduct variance stabiliozation of the metaP dataset
+metaP_obj0.ddsMat <- phyloseq_to_deseq2(metaP_obj0, ~Run)
+metaP.DEseq.vsd <- vst(metaP_obj0.ddsMat,  fitType="local", blind=FALSE)
+
+#plot PCA
+metaP_pca.df <- plotPCA(metaP.DEseq.vsd, 
+                        intgroup=c("SampleID","Treatment","Run","Fraction"),
+                        returnData=TRUE)
+
+#extract explained variance
+percentVar <- round(100 * attr(metaP_pca.df, "percentVar"))
+
+#plot
+metaP_ordination_plot<- ggplot(data = metaP_pca.df,
+                               aes(x = PC1, y = PC2, colour = Run, shape = Fraction))+
+  geom_point(fill = "black", size = 6) +
+  geom_point(size = 4,alpha = 0.8) +
+  geom_text(aes(x = PC1, y = PC2,label = SampleID), 
+            nudge_y= -8,size=4)+
+  xlab(paste0("PC1: ",percentVar[1],"% variance")) +
+  ylab(paste0("PC2: ",percentVar[2],"% variance")) + 
+  scale_colour_manual(values =c(#"MP"="gray50",
+                                "A"="red",
+                                "B"="blue"))+
+  coord_fixed()+
+  theme_bw()+
+  theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank(),
+        axis.line = element_line(colour = "black"),
+        text=element_text(size=14),legend.position = "bottom")
+
+#save the plot
+ggsave("./Figures/metaP_runs_ord.pdf", 
+       plot = metaP_ordination_plot,
+       units = "cm",
+       width = 30, height = 30, 
+       #scale = 1,
+       dpi = 300)
+
+#test whether the differences between the runs are significant
+df <- colData(metaP.DEseq.vsd)[,c("SampleID","Treatment","Run","Fraction")]
+sample_distance <- dist(t(assay(metaP.DEseq.vsd)))
+adonis_all <- adonis2(sample_distance ~ Treatment+Fraction+Run, df)
+adonis_all
+
+#posthoc to check which ponds are different
+groups <- df[["Run"]]
+mod <- betadisper(sample_distance, groups)
+permutest(mod)
+
+#dispersion is different between groups
+plot(mod)
+boxplot(mod)
+mod.HSD <- TukeyHSD(mod)
+mod.HSD
+plot(mod.HSD)
+
+#based on the fact that the there are potentially sig. differences
+#between the runs, I decided to focus only on Run 2, which also consisted
+#of more protein observations. Separated tests showed that the differences
+#between the treatments are similar in terms of sig. and var. in both replicates
+
+#conduct variance stabiliozation of the metaP dataset
+metaP_runB <- subset_samples(metaP_obj0, Run =="B") %>% 
+  prune_taxa(taxa_sums(.)>0,.)
+
+#generate metadata
+data_runB <- as(sample_data(metaP_runB),"data.frame") %>% 
+              mutate(#Fraction = case_when(Fraction %in% c("EL","EH") ~ "exoP",
+                      #        TRUE ~ "MP"),
+                     Group = paste(Treatment,Replicate, Fraction, sep ="_"))
+
+sample_data(metaP_runB) <- sample_data(data_runB)
+
 
 ###################
 #Taxonomic compositions
 ###################
 #conduct NSAF transformation
-metaP_agg_nsaf<- add_nsaf(metaP_agg, "prot_length")
+metaP_agg_nsaf<- add_nsaf(metaP_runB, "prot_length")
 
 #melt phyloseq into a dataframe for ploting
 prot_nsaf.long <- psmelt(metaP_agg_nsaf) 
@@ -168,7 +206,7 @@ prot_nsaf.long <- psmelt(metaP_agg_nsaf)
 #sum up each taxa
 prot_nsaf.class.agg <- prot_nsaf.long %>% group_by(Fraction, Group, Class, Order) %>% 
   summarize(Tot.abundance = sum(Abundance)) %>% 
-  mutate(Fraction = factor(Fraction, levels =c("MP","exoP")))
+  mutate(Fraction = factor(Fraction, levels =c("MP","EH","EL")))
 
 #remove below 1% ra
 taxa_classes <- sort(as.character(unique(prot_nsaf.class.agg$Class[!prot_nsaf.class.agg$Tot.abundance<0.01])))
@@ -182,9 +220,9 @@ prot_nsaf.class.agg$Class <- factor(prot_nsaf.class.agg$Class,
 prot_tax_comp.p<- ggplot(prot_nsaf.class.agg, 
        aes(x = Group, y = Tot.abundance,
            fill = Class)) + 
-  facet_grid(.~Fraction, space= "fixed") +
+  facet_wrap(.~Fraction, scales = "free") +
   geom_bar(position="stack", stat="identity")+
-  scale_fill_manual(values = class_col)+ 
+  #scale_fill_manual(values = class_col)+ 
   #guides(fill = guide_legend(reverse = FALSE, keywidth = 1, keyheight = 1)) +
   ylab("Protein proportions (>1%) \n")+
   geom_hline(aes(yintercept=-Inf)) + 
@@ -213,7 +251,7 @@ prot_nsaf.COG.agg <- prot_nsaf.long %>% group_by(Fraction, Group, COG20_CATEGORY
   mutate(COG20_CATEGORY_function = case_when(is.na(COG20_CATEGORY_function) ~ "Unk",
                                              TRUE ~ COG20_CATEGORY_function)) %>% 
   summarize(Tot.abundance = sum(Abundance)) %>% 
-  mutate(Fraction = factor(Fraction, levels =c("MP","exoP")))
+  mutate(Fraction = factor(Fraction, levels =c("MP","EH","EL")))
 
 #remove below 1% ra
 COG_categories <- sort(as.character(unique(prot_nsaf.COG.agg$COG20_CATEGORY_function[!prot_nsaf.COG.agg$Tot.abundance<0.02])))
@@ -233,7 +271,7 @@ col_vector = unlist(mapply(brewer.pal, qual_col_pals$maxcolors, rownames(qual_co
 prot_COG.p<- ggplot(prot_nsaf.COG.agg, 
                          aes(x = Group, y = Tot.abundance,
                              fill = COG20_CATEGORY_function)) + 
-  facet_grid(.~Fraction, space= "fixed") +
+  facet_grid(.~Fraction, scales = "free") +
   geom_bar(position="stack", stat="identity")+
   scale_fill_manual(values = col_vector)+ 
   #guides(fill = guide_legend(reverse = FALSE, keywidth = 1, keyheight = 1)) +
