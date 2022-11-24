@@ -12,8 +12,8 @@ tol21rainbow<- c("#771155", "#AA4488","#CC99BB","#114477",
                  "#4477AA","#117744","#117777","#88CCAA", 
                  "#77CCCC","#00ffff","#44AA77","#44AAAA", 
                  "#777711","#AAAA44","#DDDD77","#774411", 
-                 "#AA7744","#DDAA77","#771122","#AA4455", 
-                 "#DD7788")
+                 "#AA7744","#DDAA77","#771122","#AA4455", "#DD7788"
+                 )
 
 #conduct NSAF transformation
 #https://github.com/moldach/proteomics-spectralCount-normalization/blob/master/nsaf.R
@@ -34,7 +34,7 @@ add_nsaf=function(ps, prot_length){
 }
 
 #load metaproteome phyloseq object
-metaP_obj0<- readRDS("data/metaproteome/metaP_ps_runB.rds")
+metaP_runB<- readRDS("data/metaproteome/metaP_ps_runB.rds")
 
 ###################
 #Taxonomic compositions
@@ -173,7 +173,7 @@ ggplot(aes(x = Group, y = Tot.abundance,
                         fill = COG20_CATEGORY_function)) + 
   facet_grid(Class~Fraction, scales = "free_x") +
   geom_bar(position="stack", stat="identity")+
-  scale_fill_manual(values = col_vector)+ 
+  scale_fill_manual(values = tol21rainbow)+ 
   #guides(fill = guide_legend(reverse = FALSE, keywidth = 1, keyheight = 1)) +
   ylab("Protein proportions (>1%) \n")+
   geom_hline(aes(yintercept=-Inf)) + 
