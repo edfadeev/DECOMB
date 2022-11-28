@@ -24,7 +24,7 @@ add_nsaf=function(ps, prot_length){
   }else{
     mat <- t((otu_table(ps)))
   }
-  prot_len <- unlist(as.numeric(tax_table(ps)[,prot_length])) # Unlist your protein lengths before you sweep
+  prot_len <- as.numeric(unlist(as.numeric(tax_table(ps)[,prot_length]))) # Unlist your protein lengths before you sweep
   mat_prop <- sweep(mat,1,prot_len,"/") # Divide spectral counts (SpC) for a protein by its length (L)
   mat_sum <- as.data.frame(colSums(mat_prop)) # Get the column sums for each cell-line/treatment
   mat_sum <- mat_sum[,1]
@@ -114,7 +114,7 @@ prot_COG.p<- ggplot(prot_nsaf.COG.agg,
   geom_bar(position="stack", stat="identity")+
   scale_fill_manual(values = tol21rainbow)+ 
   #guides(fill = guide_legend(reverse = FALSE, keywidth = 1, keyheight = 1)) +
-  ylab("Protein proportions (>1%) \n")+
+  ylab("COG category ( >1% of all proteins) \n")+
   geom_hline(aes(yintercept=-Inf)) + 
   geom_vline(aes(xintercept=-Inf)) +
   geom_vline(aes(xintercept=Inf))+
