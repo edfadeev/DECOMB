@@ -1,8 +1,21 @@
 require(pheatmap)
 require(phyloseq)
 require(DESeq2)
+require(dplyr)
+require(ggplot2)
 
+#calculate standard error
+se <- function(x, na.rm=FALSE) {
+  if (na.rm) x <- na.omit(x)
+  sqrt(var(x)/length(x))
+}
 
+tol21rainbow<- c("#771155", "#AA4488","#CC99BB","#114477", 
+                 "#4477AA","#117744","#117777","#88CCAA", 
+                 "#77CCCC","#00ffff","#44AA77","#44AAAA", 
+                 "#777711","#AAAA44","#DDDD77","#774411", 
+                 "#AA7744","#DDAA77","#771122","#AA4455", "#DD7788"
+)
 
 #load metaproteome phyloseq object
 metaP_runB<- readRDS("data/metaproteome/metaP_ps_runB.rds")
@@ -77,6 +90,7 @@ metaP.DEseq.res.sig.Tax_top <- DESeq_res %>%
 
 top_fam <- as.vector(unique(metaP.DEseq.res.sig.Tax_top$Family))
 
+#filter only families of interest and prune annotations
 DESeq_res_top_fam <- DESeq_res %>% 
                       filter(Family %in% top_fam, Type %in% c("Jelly","Control")) %>% 
                       group_by(Fraction, Type, Class, Order, Family, COG20_CATEGORY_function, COG20_CATEGORY_accession) %>% 
@@ -85,26 +99,79 @@ DESeq_res_top_fam <- DESeq_res %>%
                              Fraction = factor(Fraction, levels = c("MP","EH","EL"))) 
 
 
+#aggregate by category
+DESeq_res_top_fam_agg <- DESeq_res_top_fam %>% 
+  group_by(Fraction, Type, Class, Order, Family) %>% 
+  summarize(log2_mean = mean(log2FoldChange), log2_se = se(log2FoldChange), n_prot= length(log2FoldChange)) %>% 
+  filter(n_prot> 2)
+
+
 #plot
-ggplot(DESeq_res_top_fam, aes(x= Family, y= log2FoldChange, colour = COG20_CATEGORY_accession))+
-  geom_point()+
+ggplot(DESeq_res_top_fam_agg, aes(x= Family, y= log2_mean, label = n_prot))+
+  geom_errorbar(aes(ymin= log2_mean-log2_se, ymax= log2_mean+log2_se), width = 0.2)+
+  geom_point(aes(colour = Class, shape = Type), size = 3)+
+  geom_text(nudge_x = 0.3, colour = "gray50")+
   facet_grid(.~Fraction, space= "fixed") +
-  #scale_fill_manual(values = tol21rainbow)+ 
+  scale_colour_manual(values = tol21rainbow)+ 
   #guides(fill = guide_legend(reverse = FALSE, keywidth = 1, keyheight = 1)) +
-  ylab("Number of proteins \n")+
+  ylab("Mean log2 fold change \n")+
+  geom_hline(aes(yintercept=0), linetype = 2, alpha = 0.3) +
   geom_hline(aes(yintercept=-Inf)) + 
   geom_vline(aes(xintercept=-Inf)) +
   geom_vline(aes(xintercept=Inf))+
+  coord_flip()+
   theme_bw()+
   theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank(), 
         axis.line = element_line(colour = "black"),axis.text.x = element_text(angle = 90),
-        text=element_text(size=14),legend.position = "bottom", 
-        axis.title.x = element_blank())
+        #text=element_text(size=14),
+        #legend.position = "bottom", 
+        #axis.title.x = element_blank()
+        )
 
 #save the plot
-ggsave("./Figures/metaP_COGs_per_taxa.pdf", 
+ggsave("./Figures/metaP_log2foldchange_per_taxa.pdf", 
        plot = last_plot(),
        units = "cm",
        width = 30, height = 30, 
        #scale = 1,
        dpi = 300)
+
+
+#########################################################
+#Explore KEGG pathways with enr. proteins             ###
+#########################################################
+DESeq_res_sub <- DESeq_res %>%  filter(Type =="Jelly", KOfam_accession!= "Unk") %>% 
+  mutate(KOfam_accession = gsub("\\|.*","",KOfam_accession)) %>% select(KOfam_accession,log2FoldChange)%>% 
+  tibble::deframe()
+
+#pathways of interest
+pathways<- c("00010", #Glycolysis / Gluconeogenesis
+             "00020", #TCA cycle
+             "01200", #carbon metabolism
+             "00190", #Oxidative phosphorylation
+             "00071", #Fatty acid degradation
+             "00250", #Alanine, aspartate and glutamate metabolism
+             "00260", #Glycine, serine and threonine metabolism
+             "00270", #Cysteine and methionine metabolism
+             "00280", #Valine, leucine and isoleucine degradation
+             "00310", #Lysine degradation
+             "00330", #Arginine and proline metabolism
+             "00340", #Histidine metabolism
+             "00350", #Tyrosine metabolism
+             "00360", #Phenylalanine metabolism
+             "00380", #Tryptophan metabolism
+             "00400" #Phenylalanine, tyrosine and tryptophan biosynthesis
+)
+
+#plot the pathways of interest for all enriched proteins
+pathview(gene.data = DESeq_res_sub, 
+         pathway.id =pathways,
+         species = "ko", 
+         keys.align = "y", 
+         kegg.native = T,
+         #map.null=FALSE,
+         #both.dirs = TRUE,
+         #discrete	=list(gene=TRUE),
+         res = 300, cex = 0.25,
+         out.suffix = "all_proteins",
+         kegg.dir="Figures/KEGG/")
