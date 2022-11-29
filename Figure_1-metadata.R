@@ -22,13 +22,15 @@ metadata.p <- ML_metadata %>%
          Time < 100
          ) %>% 
   ggplot(aes(x = Time, y = mean, group = Treatment, colour = Treatment))+
+  geom_point(size = 4, colour = "black")+
   geom_point(size = 3)+
   geom_line(linetype=2)+
   geom_errorbar(aes(ymin= mean-sd, ymax= mean+sd))+
   facet_wrap(~variable, scales = "free_y")+
   theme_bw()+
   theme(panel.grid.major = element_blank(),
-           panel.grid.minor = element_blank())
+        panel.grid.minor = element_blank(),
+        text = element_text(size = 20))
 
 #save the plot
 ggsave("./Figures/Figure_1-metadata.pdf",

@@ -3,7 +3,7 @@ require(ggplot2)
 
 
 #import the dataset
-fish_raw <- read.table("data/microscopy/FiSH_results.txt",
+fish_raw <- read.table("data/microscopy/",
                           h = TRUE, sep="\t", dec = ",", blank.lines.skip = TRUE) 
 
 ######################################
