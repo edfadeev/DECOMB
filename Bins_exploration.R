@@ -32,20 +32,22 @@ Bins_modules_sum<- Bins_modules %>%
   group_by(genome_name, module_category, module_subcategory) %>% 
   filter(genome_name %in% top_bins &
            module_class == "Pathway modules" &
-           module_is_complete == "True" &
+           module_is_complete == "True") %>% # &
            #module_completeness >0.9 & 
-           module_category %in% c("Amino acid metabolism",
-                                  "Carbohydrate metabolism",
-                                  "Energy metabolism",
-                                  "Lipid metabolism",
-                                  "Metabolism of cofactors and vitamins")) %>%
-  summarize(Total = n())
+           #module_category %in% c("Amino acid metabolism",
+           #                       "Carbohydrate metabolism",
+           #                       "Energy metabolism",
+            #                      "Lipid metabolism",
+            #                      "Metabolism of cofactors and vitamins")) %>%
+  summarize(Total = n()) %>% 
+  filter(Total > 1)
 
 #plot
 Bins_modules.p <- ggplot(Bins_modules_sum, aes(x=genome_name, y = Total, fill = module_subcategory))+
   geom_col()+
   #facet_wrap(~genome_name, scale = "free_y")+
   scale_fill_manual(values = tol21rainbow)+
+  ylab("Total of complete KEGG modules (> 2 modules) \n")+
   theme_bw()+
   theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank(),
         axis.line = element_line(colour = "black"),
@@ -110,75 +112,6 @@ Bin_102_KEGG_modules <- Bins_gene_calls_KEGG_modules %>%
   filter(genome_name == "Bin_102" & module_completeness >0.75) %>% 
   select("genome_name","kegg_module", "module_category", "module_subcategory", 
          "module_completeness","contig","gene_caller_id","ko","ko_definition")
-
-
-
-
-
-#Bin_115_1 - Bermanella sp002683575 (Pseudomonadales) - length 4.86Mbp (C98.6/R0)
-Bin_115_1_KEGG_modules <- Bins_gene_calls_KEGG_modules %>% 
-  filter(genome_name == "Bin_115_1" & module_completeness >0.70) %>% 
-  select("genome_name","kegg_module", "module_category", "module_subcategory", 
-         "module_completeness","contig","gene_caller_id","ko","ko_definition")
-
-#Bin_115_2 - Glaciecola sp000155775 (Enterobacterales) - length 2.22Mbp (C100/R0)
-Bin_115_2_KEGG_modules <- Bins_gene_calls_KEGG_modules %>% 
-  filter(genome_name == "Bin_115_2" & module_completeness >0.75) %>% 
-  select("genome_name","kegg_module", "module_category", "module_subcategory", 
-         "module_completeness","contig","gene_caller_id","ko","ko_definition")
-
-
-#Bin_179_1 - family Cellvibrionaceae - length 3.18Mbp (C93/R2.8)
-Bin_179_1_KEGG_modules <- Bins_gene_calls_KEGG_modules %>% 
-  filter(genome_name == "Bin_179_1" & module_completeness >0.75) %>% 
-  select("genome_name","kegg_module", "module_category", "module_subcategory", 
-         "module_completeness","contig","gene_caller_id","ko","ko_definition")
-
-#Bin_38_1 - Vibrio - length 1.7Mbp (C83/R0)
-Bin_38_1_KEGG_modules <- Bins_gene_calls_KEGG_modules %>% 
-  filter(genome_name == "Bin_38_1" & module_completeness >0.75) %>% 
-  select("genome_name","kegg_module", "module_category", "module_subcategory", 
-         "module_completeness","contig","gene_caller_id","ko","ko_definition")
-
-
-#Bin_12_1 - Saccharospirillum sp003054965 - length 3.75Mbp (C95.8/R1.4)
-Bin_12_1_KEGG_modules <- Bins_gene_calls_KEGG_modules %>% 
-  filter(genome_name == "Bin_12_1" & module_completeness >0.75) %>% 
-  select("genome_name","kegg_module", "module_category", "module_subcategory", 
-         "module_completeness","contig","gene_caller_id","ko","ko_definition")
-
-#Bin_5_2 - family Nitrincolaceae - length 5.19Mbp (C100/R0)
-Bin_5_2_KEGG_modules <- Bins_gene_calls_KEGG_modules %>% 
-  filter(genome_name == "Bin_5_2" & module_completeness >0.75) %>% 
-  select("genome_name","kegg_module", "module_category", "module_subcategory", 
-         "module_completeness","contig","gene_caller_id","ko","ko_definition")
-
-#Bin_5_3 - Reinekea blandensis (Pseudomonadales) - length 4.08Mbp (C100/R2.8)
-Bin_5_3_KEGG_modules <- Bins_gene_calls_KEGG_modules %>% 
-  filter(genome_name == "Bin_5_3" & module_completeness >0.75) %>% 
-  select("genome_name","kegg_module", "module_category", "module_subcategory", 
-         "module_completeness","contig","gene_caller_id","ko","ko_definition")
-
-#Bin_2_1 - Alteromonas - length 3.7Mbp (C78.9/R0)
-Bin_2_1_KEGG_modules <- Bins_gene_calls_KEGG_modules %>% 
-  filter(genome_name == "Bin_2_1" & module_completeness >0.75) %>% 
-  select("genome_name","kegg_module", "module_category", "module_subcategory", 
-         "module_completeness","contig","gene_caller_id","ko","ko_definition")
-
-#Bin_2_2 - Alteromonas - length 5.19Mbp (C80.3/R0)
-Bin_2_2_KEGG_modules <- Bins_gene_calls_KEGG_modules %>% 
-  filter(genome_name == "Bin_2_2" & module_completeness >0.75) %>% 
-  select("genome_name","kegg_module", "module_category", "module_subcategory", 
-         "module_completeness","contig","gene_caller_id","ko","ko_definition")
-
-#Bin_150_1_1 - Rhodobacteraceae - length 2.6Mbp (C97.2/R1.4)
-Bin_150_1_1_KEGG_modules <- Bins_gene_calls_KEGG_modules %>% 
-  filter(genome_name == "Bin_150_1_1" & module_completeness >0.75) %>% 
-  select("genome_name","kegg_module", "module_category", "module_subcategory", 
-         "module_completeness","contig","gene_caller_id","ko","ko_definition")
-
-
-
 
 
 ############################################################################
