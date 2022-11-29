@@ -1,9 +1,10 @@
 require(dplyr)
 require(ggplot2)
 
+source("scripts/extra_functions.R")
 
 #import the dataset
-fish_raw <- read.table("data/microscopy/",
+fish_raw <- read.table("data/microscopy/FiSH_results.txt",
                           h = TRUE, sep="\t", dec = ",", blank.lines.skip = TRUE) 
 
 ######################################
@@ -24,17 +25,22 @@ FiSH.p <- fish_raw %>%
                    #  !Time == "0"
                    ) %>% 
             group_by(Time, Treatment, Method,Taxa) %>%
-            summarise(across(where(is.numeric), list(mean = mean, sd = sd))) %>% 
+            summarise(across(where(is.numeric), list(mean = mean, se = se))) %>% 
             #ggplot(aes(x = Taxa, y = value_mean, fill = Taxa))+
-            ggplot(aes(x = Time, y = value_mean, shape = Treatment, colour = Treatment))+
+            ggplot(aes(x = Time, y = value_mean, colour = Treatment))+
                 #geom_bar(size = 3, stat = "identity")+
-                geom_point(size = 5)+
-                geom_errorbar(aes(ymin= value_mean-value_sd, ymax= value_mean+value_sd), width = 0.5)+
+                geom_point(size = 5, colour = "black")+
+                geom_point(size = 4)+
+                geom_errorbar(aes(ymin= value_mean-value_se, ymax= value_mean+value_se), width = 0.3)+
                 #facet_grid(Method~Time+Treatment)+
+                scale_colour_manual(values =c("Innoculum"="gray50",
+                                              "J"="red",
+                                              "C"="blue"))+
                 facet_grid(Method~Taxa)+
                 theme_bw()+
                 theme(panel.grid.major = element_blank(),
-                      panel.grid.minor = element_blank())
+                      panel.grid.minor = element_blank(),
+                      text = element_text(size = 20))
 
 #save the plot
 ggsave("./Figures/Figure_2-Prod_resp.pdf",

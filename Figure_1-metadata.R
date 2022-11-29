@@ -1,9 +1,10 @@
 require(dplyr)
 require(ggplot2)
 
+source("scripts/extra_functions.R")
 
 #import the dataset
-ML_metadata <- read.table("/Users/eduardfadeev/ucloud/Projects/DE-COMB/01_Results/Metadata/for_R/ML_metadata.txt",
+ML_metadata <- read.table("data/ML_metadata.txt",
                          h = TRUE, sep="\t", dec = ",", blank.lines.skip = TRUE) %>% 
                   filter(!Treatment=="")
 
@@ -17,7 +18,7 @@ metadata.p <- ML_metadata %>%
                                                    "NO3","NO2","PO43",
                                                    "DOC","DCAA","DFAA")),
           value = as.numeric(value)) %>% 
-  summarise(mean = mean(value), sd = sd(value)) %>% 
+  summarise(mean = mean(value), se = se(value)) %>% 
   filter(!is.na(mean),
          Time < 100
          ) %>% 
@@ -25,7 +26,10 @@ metadata.p <- ML_metadata %>%
   geom_point(size = 4, colour = "black")+
   geom_point(size = 3)+
   geom_line(linetype=2)+
-  geom_errorbar(aes(ymin= mean-sd, ymax= mean+sd))+
+  scale_colour_manual(values =c(#"Innoculum"="gray50",
+                              "J"="red",
+                              "C"="blue"))+
+  geom_errorbar(aes(ymin= mean-se, ymax= mean+se), width = 0.2)+
   facet_wrap(~variable, scales = "free_y")+
   theme_bw()+
   theme(panel.grid.major = element_blank(),
