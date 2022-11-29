@@ -82,11 +82,28 @@ Bins_gene_calls_KEGG_modules<-Bins_modules %>%
 #explore each bin manualy
 ############################################################################
 
-#Bin 84_1 - Pseudoalteromonas phenolica - length 3.92Mbp (C93/R0)
-Bin_84_1_KEGG_modules <- Bins_gene_calls_KEGG_modules %>% 
-  filter(genome_name == "Bin_84_1" & module_completeness >0.70) %>% 
+#Bin 84 - Pseudoalteromonas phenolica - length 4.27Mbp (C85/R0)
+Bin_84_KEGG_modules <- Bins_gene_calls_KEGG_modules %>% 
+  filter(genome_name == "Bin_84" & module_completeness >0.75) %>% 
   select("genome_name","kegg_module", "module_category", "module_subcategory", 
          "module_completeness","contig","gene_caller_id","ko","ko_definition")
+
+#Bin_76 - Marinobacterium jannaschii - length 5.32Mbp (C86/R0)
+Bin_76_KEGG_modules <- Bins_gene_calls_KEGG_modules %>% 
+  filter(genome_name == "Bin_76" & module_completeness >0.75) %>% 
+  select("genome_name","kegg_module", "module_category", "module_subcategory", 
+         "module_completeness","contig","gene_caller_id","ko","ko_definition")
+
+
+#Bin_102 - Kordiimonas lacus - length 3.24Mbp (C100/R2)
+Bin_102_KEGG_modules <- Bins_gene_calls_KEGG_modules %>% 
+  filter(genome_name == "Bin_102" & module_completeness >0.75) %>% 
+  select("genome_name","kegg_module", "module_category", "module_subcategory", 
+         "module_completeness","contig","gene_caller_id","ko","ko_definition")
+
+
+
+
 
 #Bin_115_1 - Bermanella sp002683575 (Pseudomonadales) - length 4.86Mbp (C98.6/R0)
 Bin_115_1_KEGG_modules <- Bins_gene_calls_KEGG_modules %>% 
@@ -100,11 +117,6 @@ Bin_115_2_KEGG_modules <- Bins_gene_calls_KEGG_modules %>%
   select("genome_name","kegg_module", "module_category", "module_subcategory", 
          "module_completeness","contig","gene_caller_id","ko","ko_definition")
 
-#Bin_76_1 - family Nitrincolaceae - length 3.78Mbp (C100/R0)
-Bin_76_1_KEGG_modules <- Bins_gene_calls_KEGG_modules %>% 
-  filter(genome_name == "Bin_76_1" & module_completeness >0.75) %>% 
-  select("genome_name","kegg_module", "module_category", "module_subcategory", 
-         "module_completeness","contig","gene_caller_id","ko","ko_definition")
 
 #Bin_179_1 - family Cellvibrionaceae - length 3.18Mbp (C93/R2.8)
 Bin_179_1_KEGG_modules <- Bins_gene_calls_KEGG_modules %>% 
@@ -118,11 +130,6 @@ Bin_38_1_KEGG_modules <- Bins_gene_calls_KEGG_modules %>%
   select("genome_name","kegg_module", "module_category", "module_subcategory", 
          "module_completeness","contig","gene_caller_id","ko","ko_definition")
 
-#Bin_102_1 - Kordiimonas lacus - length 2.18Mbp (C73/R0)
-Bin_102_1_KEGG_modules <- Bins_gene_calls_KEGG_modules %>% 
-  filter(genome_name == "Bin_102_1" & module_completeness >0.75) %>% 
-  select("genome_name","kegg_module", "module_category", "module_subcategory", 
-         "module_completeness","contig","gene_caller_id","ko","ko_definition")
 
 #Bin_12_1 - Saccharospirillum sp003054965 - length 3.75Mbp (C95.8/R1.4)
 Bin_12_1_KEGG_modules <- Bins_gene_calls_KEGG_modules %>% 

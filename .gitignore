@@ -1,16 +1,5 @@
-<<<<<<< HEAD
 .Rproj.user
 .Rhistory
 .RData
 .Ruserdata
-=======
-.Rproj.user
-.Rhistory
-.RData
-.Ruserdata
-<<<<<<< HEAD
-.DS_Store
-=======
->>>>>>> 36ce85cc62f48d8a14ac55cd84210dcf25ab8082
->>>>>>> 4c5927565cfb11cf33d044241cf8b5e5ae3b4733
-Figures
+.png

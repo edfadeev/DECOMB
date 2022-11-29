@@ -90,15 +90,15 @@ samples_df <- read.csv("./data/metaproteome/DE-COMB_all_prot_InputFiles_correcte
 #rename sample columns and filter out low confidence proteins and replace NA with 0
 PD_df <- read.csv("data/metaproteome/DE-COMB_all_prot_Proteins.txt",
                   sep="\t", h= T)%>% 
-  dplyr::rename(gene_caller_id = Accession) %>% 
+  dplyr::rename(gene_callers_id = Accession) %>% 
+  mutate(gene_callers_id = as.integer(gsub("_.*","",gene_callers_id))) %>% 
   select_at(vars(!contains("Found"))) %>% 
   rename_with(~gsub("Abundance\\.|\\.Sample","",.), everything()) %>% 
   rename_at(all_of(samples_df$File.ID), ~ samples_df$Sample_name) %>% 
   filter(Number.of.PSMs >=2 , Number.of.Unique.Peptides>=1)%>% 
   mutate_if(is.numeric, funs(replace_na(., 0))) %>% 
   mutate_if(is.numeric,as.integer) %>% 
-  select(c("gene_caller_id",samples_df$Sample_name)) %>% 
-  mutate(gene_caller_id = gsub("_.*","",gene_caller_id))
+  select(c("gene_callers_id",samples_df$Sample_name))
 
 ########################################
 #for convenient analysis the metaproteome data is imported into phyloseq
@@ -109,7 +109,7 @@ sample_names(meta_df)<-samples_df$Sample_name
 
 #produce protein counts table
 metaP_prot_counts<- otu_table(data.frame(PD_df[, all_of(samples_df$Sample_name)], 
-                                         row.names = PD_df$gene_caller_id), taxa_are_rows = TRUE)
+                                         row.names = PD_df$gene_callers_id), taxa_are_rows = TRUE)
 
 #gene ids as taxonomy table
 protein_annotation<- tax_table(as.matrix(gene_meta_df))                          
