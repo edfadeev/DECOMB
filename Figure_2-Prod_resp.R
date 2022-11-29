@@ -49,3 +49,8 @@ ggsave("./Figures/Figure_2-Prod_resp.pdf",
        width = 30, height = 30, 
        #scale = 1,
        dpi = 300)
+
+#print session info and clean the workspace
+sessionInfo()
+rm(list = ls())
+gc()

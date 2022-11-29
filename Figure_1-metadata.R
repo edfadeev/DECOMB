@@ -59,7 +59,10 @@ cell_abund.p <- ML_metadata %>%
 
 
 
-
+#print session info and clean the workspace
+sessionInfo()
+rm(list = ls())
+gc()
 
   
   

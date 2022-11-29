@@ -4,23 +4,16 @@ require(tidyr)
 require(ggplot2)
 require(pathview)
 
-
-
-tol21rainbow<- c("#771155", "#AA4488","#CC99BB","#114477", 
-                 "#4477AA","#117744","#117777","#88CCAA", 
-                 "#77CCCC","#00ffff","#44AA77","#44AAAA", 
-                 "#777711","#AAAA44","#DDDD77","#774411", 
-                 "#AA7744","#DDAA77","#771122","#AA4455", 
-                 "#DD7788")
+source("scripts/extra_functions.R")
 
 ######################################
 #Investigate metabolic pathways in the bins
 ######################################
 Bins_modules <- read.csv("data/metagenome/Bins_modules.txt", sep="\t", h= T)
 
-#subset complete modules only in categories of interest and summarize
-Bins_modules_sum<- Bins_modules %>% 
-  group_by(genome_name, module_category, module_subcategory) %>% 
+
+Bins_total<- Bins_modules %>% 
+  group_by(genome_name) %>% 
   filter(module_class == "Pathway modules" &
            module_is_complete == "True" &
            #module_completeness >0.9 & 
@@ -31,21 +24,38 @@ Bins_modules_sum<- Bins_modules %>%
                                   "Metabolism of cofactors and vitamins")) %>%
   summarize(Total = n())
 
+#list the bins with more modules than the mean (26)
+top_bins<- Bins_total %>% filter(Total > 26) %>% select(genome_name) %>% tibble::deframe()
+
+#subset complete modules only in categories of interest and summarize
+Bins_modules_sum<- Bins_modules %>% 
+  group_by(genome_name, module_category, module_subcategory) %>% 
+  filter(genome_name %in% top_bins &
+           module_class == "Pathway modules" &
+           module_is_complete == "True" &
+           #module_completeness >0.9 & 
+           module_category %in% c("Amino acid metabolism",
+                                  "Carbohydrate metabolism",
+                                  "Energy metabolism",
+                                  "Lipid metabolism",
+                                  "Metabolism of cofactors and vitamins")) %>%
+  summarize(Total = n())
+
 #plot
-ggplot(Bins_modules_sum, aes(x=genome_name, y = Total, fill = module_subcategory))+
+Bins_modules.p <- ggplot(Bins_modules_sum, aes(x=genome_name, y = Total, fill = module_subcategory))+
   geom_col()+
-  facet_wrap(module_category~., scale = "free_y")+
+  #facet_wrap(~genome_name, scale = "free_y")+
   scale_fill_manual(values = tol21rainbow)+
   theme_bw()+
   theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank(),
         axis.line = element_line(colour = "black"),
-        text=element_text(size=14),legend.position = "bottom", 
+        text=element_text(size=20),legend.position = "right", 
         axis.title.x = element_blank(), axis.text.x = element_text(angle=90))
 
 
 #save the plot
-ggsave("Figures/KEGG_modules_per_bin.pdf", 
-       plot = last_plot(),
+ggsave("Figures/KEGG_modules_per_bin.png", 
+       plot = Bins_modules.p,
        units = "cm",
        width = 30, height = 30, 
        #scale = 1,

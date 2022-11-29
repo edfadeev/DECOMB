@@ -4,30 +4,7 @@ require(DESeq2)
 require(dplyr)
 require(ggplot2)
 
-tol21rainbow<- c("#771155", "#AA4488","#CC99BB","#114477", 
-                 "#4477AA","#117744","#117777","#88CCAA", 
-                 "#77CCCC","#00ffff","#44AA77","#44AAAA", 
-                 "#777711","#AAAA44","#DDDD77","#774411", 
-                 "#AA7744","#DDAA77","#771122","#AA4455", "#DD7788"
-)
-
-#conduct NSAF transformation
-#https://github.com/moldach/proteomics-spectralCount-normalization/blob/master/nsaf.R
-#https://rdrr.io/github/DanielSprockett/reltools/man/add_nsaf.html
-add_nsaf=function(ps, prot_length){
-  if(ps@otu_table@taxa_are_rows == TRUE){
-    mat <- (otu_table(ps))
-  }else{
-    mat <- t((otu_table(ps)))
-  }
-  prot_len <- as.numeric(unlist(as.numeric(tax_table(ps)[,prot_length]))) # Unlist your protein lengths before you sweep
-  mat_prop <- sweep(mat,1,prot_len,"/") # Divide spectral counts (SpC) for a protein by its length (L)
-  mat_sum <- as.data.frame(colSums(mat_prop)) # Get the column sums for each cell-line/treatment
-  mat_sum <- mat_sum[,1]
-  mat_nsaf <- sweep(mat_prop,2,mat_sum,"/") # Normalize by dividing by the sum of all SpC/L for all proteins identified 
-  otu_table(ps) <- otu_table(mat_nsaf, taxa_are_rows = TRUE)
-  return(ps)
-}
+source("scripts/extra_functions.R")
 
 #########################################################
 #Explore all proteins in binned genes                 ###

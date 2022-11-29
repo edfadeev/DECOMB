@@ -4,18 +4,7 @@ require(DESeq2)
 require(dplyr)
 require(ggplot2)
 
-#calculate standard error
-se <- function(x, na.rm=FALSE) {
-  if (na.rm) x <- na.omit(x)
-  sqrt(var(x)/length(x))
-}
-
-tol21rainbow<- c("#771155", "#AA4488","#CC99BB","#114477", 
-                 "#4477AA","#117744","#117777","#88CCAA", 
-                 "#77CCCC","#00ffff","#44AA77","#44AAAA", 
-                 "#777711","#AAAA44","#DDDD77","#774411", 
-                 "#AA7744","#DDAA77","#771122","#AA4455", "#DD7788"
-)
+source("scripts/extra_functions.R")
 
 #load metaproteome phyloseq object
 metaP_runB<- readRDS("data/metaproteome/metaP_ps_runB.rds")
@@ -109,12 +98,13 @@ DESeq_res_top_fam_agg <- DESeq_res_top_fam %>%
 #plot
 ggplot(DESeq_res_top_fam_agg, aes(x= Family, y= log2_mean, label = n_prot))+
   geom_errorbar(aes(ymin= log2_mean-log2_se, ymax= log2_mean+log2_se), width = 0.2)+
-  geom_point(aes(colour = Class, shape = Type), size = 3)+
+  geom_point(aes( shape = Type), size = 5, colour = "black")+
+  geom_point(aes(colour = Class, shape = Type), size = 4)+
   geom_text(nudge_x = 0.3, colour = "gray50")+
   facet_grid(.~Fraction, space= "fixed") +
   scale_colour_manual(values = tol21rainbow)+ 
   #guides(fill = guide_legend(reverse = FALSE, keywidth = 1, keyheight = 1)) +
-  ylab("Mean log2 fold change \n")+
+  ylab("Mean log2 fold change \n (> 2 proteins)")+
   geom_hline(aes(yintercept=0), linetype = 2, alpha = 0.3) +
   geom_hline(aes(yintercept=-Inf)) + 
   geom_vline(aes(xintercept=-Inf)) +
@@ -122,8 +112,8 @@ ggplot(DESeq_res_top_fam_agg, aes(x= Family, y= log2_mean, label = n_prot))+
   coord_flip()+
   theme_bw()+
   theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank(), 
-        axis.line = element_line(colour = "black"),axis.text.x = element_text(angle = 90),
-        #text=element_text(size=14),
+        axis.line = element_line(colour = "black"),#axis.text.x = element_text(angle = 90),
+        text=element_text(size=20),
         #legend.position = "bottom", 
         #axis.title.x = element_blank()
         )
@@ -132,46 +122,74 @@ ggplot(DESeq_res_top_fam_agg, aes(x= Family, y= log2_mean, label = n_prot))+
 ggsave("./Figures/metaP_log2foldchange_per_taxa.pdf", 
        plot = last_plot(),
        units = "cm",
-       width = 30, height = 30, 
+       width = 50, height = 30, 
        #scale = 1,
        dpi = 300)
 
 
 #########################################################
-#Explore KEGG pathways with enr. proteins             ###
+#Explore enr. proteins by taxa in all fractions       ###
 #########################################################
-DESeq_res_sub <- DESeq_res %>%  filter(Type =="Jelly", KOfam_accession!= "Unk") %>% 
-  mutate(KOfam_accession = gsub("\\|.*","",KOfam_accession)) %>% select(KOfam_accession,log2FoldChange)%>% 
-  tibble::deframe()
+DESeq_res_top_Vibrio <- DESeq_res_top_fam %>% 
+                          filter(Family == "Vibrionaceae") 
 
-#pathways of interest
-pathways<- c("00010", #Glycolysis / Gluconeogenesis
-             "00020", #TCA cycle
-             "01200", #carbon metabolism
-             "00190", #Oxidative phosphorylation
-             "00071", #Fatty acid degradation
-             "00250", #Alanine, aspartate and glutamate metabolism
-             "00260", #Glycine, serine and threonine metabolism
-             "00270", #Cysteine and methionine metabolism
-             "00280", #Valine, leucine and isoleucine degradation
-             "00310", #Lysine degradation
-             "00330", #Arginine and proline metabolism
-             "00340", #Histidine metabolism
-             "00350", #Tyrosine metabolism
-             "00360", #Phenylalanine metabolism
-             "00380", #Tryptophan metabolism
-             "00400" #Phenylalanine, tyrosine and tryptophan biosynthesis
-)
+DESeq_res_top_Vibrio_total<- DESeq_res_top_Vibrio%>% 
+                          select(gene_callers_id, Type, Genus, COG20_CATEGORY_function, COG20_CATEGORY_accession) %>% 
+                          unique() %>% 
+                          group_by(Type, Genus,  COG20_CATEGORY_function, COG20_CATEGORY_accession) %>% 
+                          summarize(n_prot = n())
 
-#plot the pathways of interest for all enriched proteins
-pathview(gene.data = DESeq_res_sub, 
-         pathway.id =pathways,
-         species = "ko", 
-         keys.align = "y", 
-         kegg.native = T,
-         #map.null=FALSE,
-         #both.dirs = TRUE,
-         #discrete	=list(gene=TRUE),
-         res = 300, cex = 0.25,
-         out.suffix = "all_proteins",
-         kegg.dir="Figures/KEGG/")
+#Pseudoalteromonas
+DESeq_res_top_Pseudoalt <- DESeq_res_top_fam %>% 
+                            filter(Family == "Pseudoalteromonadaceae")
+  
+DESeq_res_top_Pseudoalt_total <- DESeq_res_top_Pseudoalt %>% 
+  select(gene_callers_id, Type, Genus, COG20_CATEGORY_function, COG20_CATEGORY_accession) %>% 
+  unique() %>% 
+  group_by(Type, Genus, COG20_CATEGORY_function, COG20_CATEGORY_accession) %>% 
+  summarize(n_prot = n())
+
+#Alteromonas
+DESeq_res_top_Alteromonas <- DESeq_res_top_fam %>% 
+  filter(Family == "Alteromonadaceae")
+  
+DESeq_res_top_Alteromonas_total <- DESeq_res_top_Alteromonas %>%  
+                                    select(gene_callers_id, Type, Genus, COG20_CATEGORY_function, COG20_CATEGORY_accession) %>% 
+                                    unique() %>% 
+                                    group_by(Type, Genus, COG20_CATEGORY_function, COG20_CATEGORY_accession) %>% 
+                                    summarize(n_prot = n())
+
+#Flavobacteria
+DESeq_res_top_Flavo <- DESeq_res_top_fam %>% 
+  filter(Family == "Flavobacteriaceae")
+
+DESeq_res_top_Flavo_total <- DESeq_res_top_Flavo %>%   
+  select(gene_callers_id, Type, Genus, COG20_CATEGORY_function, COG20_CATEGORY_accession) %>% 
+  unique() %>% 
+  group_by(Type, Genus, COG20_CATEGORY_function, COG20_CATEGORY_accession) %>% 
+  summarize(n_prot = n())
+
+#Pelagibacter
+DESeq_res_top_Pelagi <- DESeq_res_top_fam %>% 
+                        filter(Family == "Pelagibacteraceae")
+  
+DESeq_res_top_Pelagi_total <- DESeq_res_top_Pelagi %>%  
+  select(gene_callers_id, Type, Genus, COG20_CATEGORY_function, COG20_CATEGORY_accession) %>% 
+  unique() %>% 
+  group_by(Type, Genus, COG20_CATEGORY_function, COG20_CATEGORY_accession) %>% 
+  summarize(n_prot = n())
+
+#Rhodobacters
+DESeq_res_top_Rhodo <- DESeq_res_top_fam %>% 
+  filter(Family == "Rhodobacteraceae")
+  
+DESeq_res_top_Rhodo_total <- DESeq_res_top_Rhodo %>%  
+  select(gene_callers_id, Type, Genus, COG20_CATEGORY_function, COG20_CATEGORY_accession) %>% 
+  unique() %>% 
+  group_by(Type, Genus, COG20_CATEGORY_function, COG20_CATEGORY_accession) %>% 
+  summarize(n_prot = n())
+
+#print session info and clean the workspace
+sessionInfo()
+rm(list = ls())
+gc()
