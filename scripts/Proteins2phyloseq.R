@@ -13,7 +13,9 @@ require(phyloseq)
 ########################################
 #genes list
 gene_annotations_df <- read.csv("./data/metagenome/spades-gene-calls.txt",
-                                sep="\t", h= T) 
+                                sep="\t", h= T) %>% 
+                        left_join(read.csv("./data/metagenome/Refined-bins-gene-calls.txt",sep="\t", h= T), 
+                                    by = c("gene_callers_id","contig")) 
 
 #import gene taxonomy
 gene_taxa_df<- read.csv("./data/metagenome/spades-genes-taxonomy.txt",
@@ -23,7 +25,6 @@ gene_taxa_df<- read.csv("./data/metagenome/spades-genes-taxonomy.txt",
                 dplyr::rename(Class = t_order ,Order = t_class,
                               Phylum = t_phylum, Family = t_family,
                               Genus = t_genus) #switch columns due to some taxonomy parsing bug in anvio
-
 
 
 #import functional annotations
@@ -53,7 +54,7 @@ annotations_df <- annotations_list %>%
   replace(is.na(.), "Unk")
 
 gene_meta_df <- gene_annotations_df %>% 
-  select(gene_callers_id, contig, start, stop, partial, aa_sequence) %>% 
+  select(gene_callers_id, contig, start, stop, partial, aa_sequence, Bin) %>% 
   merge(annotations_df, by = "gene_callers_id") %>% 
   merge(gene_taxa_df, by = "gene_callers_id") %>% 
   mutate(prot_length = nchar(aa_sequence)) %>% 
