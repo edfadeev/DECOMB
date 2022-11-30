@@ -52,7 +52,7 @@ prot_Bin.p<- ggplot(prot_nsaf.Bin.agg,
 
 
 #save the plot
-ggsave("./Figures/Proteins_by_bin.pdf", 
+ggsave("./Figures/Proteins_by_bin.png", 
        plot = prot_Bin.p,
        units = "cm",
        width = 30, height = 30, 
@@ -66,13 +66,19 @@ ggsave("./Figures/Proteins_by_bin.pdf",
 #import prot. enrichment results 
 DESeq_res <- read.csv("data/DESEq_res.csv", row.names = 1)
 
+Kofam_hits <- read.csv("./data/metagenome/spades-Kofam_hits.txt", sep="\t", h= T) %>% 
+  dplyr::rename("gene_callers_id" = "gene_caller_id", "contig" = "contig_name")
+
 #import KEGG annoptations of the metagenome and merge with  genes list per bin
 metaG_KEGG_modules_by_gene <- read.csv("data/metagenome/spades-KOfam-functions.txt", sep="\t", h= T) %>% 
   left_join(read.csv("./data/metagenome/Refined-bins-gene-calls.txt",
-                     sep="\t", h= T), by = c("gene_callers_id"))
+                     sep="\t", h= T), by = c("gene_callers_id")) %>% 
+  left_join(Kofam_hits, by = c("gene_callers_id","contig"))
 
 
-DESeq_res_bins <- metaG_KEGG_modules_by_gene %>% left_join(DESeq_res[c("gene_callers_id", "Type","Fraction","log2FoldChange")], by = c("gene_callers_id"))
+DESeq_res_bins <- metaG_KEGG_modules_by_gene %>% 
+  left_join(DESeq_res[c("gene_callers_id", "Type","Fraction","log2FoldChange")], by = c("gene_callers_id")) %>% 
+  filter(!is.na(Bin))
 
 
 #calculate how many enriched proteins there are per bin
@@ -85,14 +91,19 @@ DESeq_res_bins_totals <- DESeq_res_bins %>%
 #########################################################
 #Explore enr. proteins in Bin_84 (Pseudoalteromonas)  ###
 #########################################################
-DESeq_res_bin_84 <- DESeq_res_bins %>%  
+#explore manualy
+DESeq_res_bin_84_KEGG_modules <- DESeq_res_bins %>%  
+  filter(Bin =="Bin_84") %>% 
+  filter(!is.na(log2FoldChange))
+
+#produce list of KOs for mapping
+DESeq_res_bin_84_KO_list <- DESeq_res_bins %>%  
   filter(Bin =="Bin_84") %>% 
   mutate(log2FoldChange = case_when(is.na(log2FoldChange)==TRUE ~ -1, 
                                     TRUE ~ log2FoldChange)) %>% 
-  filter(#Type =="Jelly", 
-         !is.na(accession)) %>% 
-  select(accession,log2FoldChange)%>% 
-  tibble::deframe()
+  filter(!is.na(accession))
+                              select(accession,log2FoldChange)%>% 
+                              tibble::deframe()
 
 #pathways of interest
 pathways<- c("00010", #Glycolysis / Gluconeogenesis
@@ -116,7 +127,7 @@ pathways<- c("00010", #Glycolysis / Gluconeogenesis
 
 #plot in a loop all the pathways of interest for each bin
 pathview(gene.data = DESeq_res_bin_84, 
-           pathway.id =pathways,
+           pathway.id ="00190",
            species = "ko", 
            keys.align = "y", 
            kegg.native = T,
