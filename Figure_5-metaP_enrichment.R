@@ -133,60 +133,100 @@ ggsave("./Figures/metaP_log2foldchange_per_taxa.pdf",
 DESeq_res_top_Vibrio <- DESeq_res_top_fam %>% 
                           filter(Family == "Vibrionaceae") 
 
-DESeq_res_top_Vibrio_total<- DESeq_res_top_Vibrio%>% 
+DESeq_res_top_Vibrio_total_COG20_function <- DESeq_res_top_Vibrio%>% 
+  select(gene_callers_id, Type, Genus, COG20_FUNCTION_function, COG20_FUNCTION_accession,log2FoldChange) %>% 
+  unique() %>% 
+  group_by(Type, Genus,  COG20_FUNCTION_function, COG20_FUNCTION_accession) %>% 
+  summarize(log2_mean = mean(log2FoldChange), log2_se = se(log2FoldChange), n_prot= length(log2FoldChange)) 
+
+
+DESeq_res_top_Vibrio_total_COG20_category<- DESeq_res_top_Vibrio%>% 
                           select(gene_callers_id, Type, Genus, COG20_CATEGORY_function, COG20_CATEGORY_accession) %>% 
                           unique() %>% 
                           group_by(Type, Genus,  COG20_CATEGORY_function, COG20_CATEGORY_accession) %>% 
                           summarize(n_prot = n())
 
+
 #Pseudoalteromonas
 DESeq_res_top_Pseudoalt <- DESeq_res_top_fam %>% 
                             filter(Family == "Pseudoalteromonadaceae")
   
-DESeq_res_top_Pseudoalt_total <- DESeq_res_top_Pseudoalt %>% 
+DESeq_res_top_Pseudoalt_total_COG20_function <- DESeq_res_top_Pseudoalt%>% 
+  select(gene_callers_id, Type, Genus, COG20_FUNCTION_function, COG20_FUNCTION_accession,log2FoldChange) %>% 
+  unique() %>% 
+  group_by(Type, Genus,  COG20_FUNCTION_function, COG20_FUNCTION_accession) %>% 
+  summarize(log2_mean = mean(log2FoldChange), log2_se = se(log2FoldChange), n_prot= length(log2FoldChange)) 
+
+
+DESeq_res_top_Pseudoalt_total_COG20_category<- DESeq_res_top_Pseudoalt%>% 
   select(gene_callers_id, Type, Genus, COG20_CATEGORY_function, COG20_CATEGORY_accession) %>% 
   unique() %>% 
-  group_by(Type, Genus, COG20_CATEGORY_function, COG20_CATEGORY_accession) %>% 
+  group_by(Type, Genus,  COG20_CATEGORY_function, COG20_CATEGORY_accession) %>% 
   summarize(n_prot = n())
 
 #Alteromonas
 DESeq_res_top_Alteromonas <- DESeq_res_top_fam %>% 
   filter(Family == "Alteromonadaceae")
   
-DESeq_res_top_Alteromonas_total <- DESeq_res_top_Alteromonas %>%  
-                                    select(gene_callers_id, Type, Genus, COG20_CATEGORY_function, COG20_CATEGORY_accession) %>% 
-                                    unique() %>% 
-                                    group_by(Type, Genus, COG20_CATEGORY_function, COG20_CATEGORY_accession) %>% 
-                                    summarize(n_prot = n())
+DESeq_res_top_Alteromonas_total_COG20_function <- DESeq_res_top_Alteromonas%>% 
+  select(gene_callers_id, Type, Genus, COG20_FUNCTION_function, COG20_FUNCTION_accession,log2FoldChange) %>% 
+  unique() %>% 
+  group_by(Type, Genus,  COG20_FUNCTION_function, COG20_FUNCTION_accession) %>% 
+  summarize(log2_mean = mean(log2FoldChange), log2_se = se(log2FoldChange), n_prot= length(log2FoldChange)) 
+
+
+DESeq_res_top_Alteromonas_total_COG20_category<- DESeq_res_top_Alteromonas%>% 
+  select(gene_callers_id, Type, Genus, COG20_CATEGORY_function, COG20_CATEGORY_accession) %>% 
+  unique() %>% 
+  group_by(Type, Genus,  COG20_CATEGORY_function, COG20_CATEGORY_accession) %>% 
+  summarize(n_prot = n())
 
 #Flavobacteria
 DESeq_res_top_Flavo <- DESeq_res_top_fam %>% 
   filter(Family == "Flavobacteriaceae")
 
-DESeq_res_top_Flavo_total <- DESeq_res_top_Flavo %>%   
+DESeq_res_top_Flavo_total_COG20_function <- DESeq_res_top_Flavo%>% 
+  select(gene_callers_id, Type, Genus, COG20_FUNCTION_function, COG20_FUNCTION_accession,log2FoldChange) %>% 
+  unique() %>% 
+  group_by(Type, Genus,  COG20_FUNCTION_function, COG20_FUNCTION_accession) %>% 
+  summarize(log2_mean = mean(log2FoldChange), log2_se = se(log2FoldChange), n_prot= length(log2FoldChange)) 
+
+DESeq_res_top_Flavo_total_COG20_category<- DESeq_res_top_Flavo%>% 
   select(gene_callers_id, Type, Genus, COG20_CATEGORY_function, COG20_CATEGORY_accession) %>% 
   unique() %>% 
-  group_by(Type, Genus, COG20_CATEGORY_function, COG20_CATEGORY_accession) %>% 
+  group_by(Type, Genus,  COG20_CATEGORY_function, COG20_CATEGORY_accession) %>% 
   summarize(n_prot = n())
 
 #Pelagibacter
 DESeq_res_top_Pelagi <- DESeq_res_top_fam %>% 
                         filter(Family == "Pelagibacteraceae")
   
-DESeq_res_top_Pelagi_total <- DESeq_res_top_Pelagi %>%  
+DESeq_res_top_Pelagi_total_COG20_function <- DESeq_res_top_Pelagi%>% 
+  select(gene_callers_id, Type, Genus, COG20_FUNCTION_function, COG20_FUNCTION_accession,log2FoldChange) %>% 
+  unique() %>% 
+  group_by(Type, Genus,  COG20_FUNCTION_function, COG20_FUNCTION_accession) %>% 
+  summarize(log2_mean = mean(log2FoldChange), log2_se = se(log2FoldChange), n_prot= length(log2FoldChange)) 
+
+DESeq_res_top_Pelagi_total_COG20_category<- DESeq_res_top_Pelagi%>% 
   select(gene_callers_id, Type, Genus, COG20_CATEGORY_function, COG20_CATEGORY_accession) %>% 
   unique() %>% 
-  group_by(Type, Genus, COG20_CATEGORY_function, COG20_CATEGORY_accession) %>% 
+  group_by(Type, Genus,  COG20_CATEGORY_function, COG20_CATEGORY_accession) %>% 
   summarize(n_prot = n())
 
 #Rhodobacters
 DESeq_res_top_Rhodo <- DESeq_res_top_fam %>% 
   filter(Family == "Rhodobacteraceae")
   
-DESeq_res_top_Rhodo_total <- DESeq_res_top_Rhodo %>%  
+DESeq_res_top_Rhodo_total_COG20_function <- DESeq_res_top_Rhodo%>% 
+  select(gene_callers_id, Type, Genus, COG20_FUNCTION_function, COG20_FUNCTION_accession,log2FoldChange) %>% 
+  unique() %>% 
+  group_by(Type, Genus,  COG20_FUNCTION_function, COG20_FUNCTION_accession) %>% 
+  summarize(log2_mean = mean(log2FoldChange), log2_se = se(log2FoldChange), n_prot= length(log2FoldChange)) 
+
+DESeq_res_top_Rhodo_total_COG20_category<- DESeq_res_top_Rhodo%>% 
   select(gene_callers_id, Type, Genus, COG20_CATEGORY_function, COG20_CATEGORY_accession) %>% 
   unique() %>% 
-  group_by(Type, Genus, COG20_CATEGORY_function, COG20_CATEGORY_accession) %>% 
+  group_by(Type, Genus,  COG20_CATEGORY_function, COG20_CATEGORY_accession) %>% 
   summarize(n_prot = n())
 
 #print session info and clean the workspace

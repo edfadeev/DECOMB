@@ -159,7 +159,6 @@ plot(mod.HSD)
 #of more protein observations. Separated tests showed that the differences
 #between the treatments are similar in terms of sig. and var. in both replicates
 
-#conduct variance stabiliozation of the metaP dataset
 metaP_runB <- subset_samples(metaP_obj0, Run =="B") %>% 
   prune_taxa(taxa_sums(.)>0,.)
 
