@@ -266,10 +266,10 @@ anvi-script-process-genbank-metadata -m $WORKDIR/08_BIN_PAN/Pphenol-METADATA.txt
                                      --output-fasta-txt $WORKDIR/08_BIN_PAN/Pphenol_genomes.txt
 
 #remove the annotation paths
-cut -f1,2 08_BIN_PAN/Pphenol_genomes.txt> 08_BIN_PAN/Pphenol_fasta.txt
+cut -f1,2 $WORKDIR/08_BIN_PAN/Pphenol_genomes.txt> $WORKDIR/08_BIN_PAN/Pphenol_fasta.txt
 
 #add the paths of the bins
-tail -n 3 08_BIN_PAN/Pseudoalt_fasta.txt >> 08_BIN_PAN/Pphenol_fasta.txt
+tail -n 3 $WORKDIR/08_BIN_PAN/Pseudoalt_fasta.txt >> $WORKDIR/08_BIN_PAN/Pphenol_fasta.txt
 
 #generate config file for the pangenome
 anvi-run-workflow -w pangenomics --get-default-config $WORKDIR/08_BIN_PAN/Pphenol-pangenomics-config.json
@@ -289,7 +289,7 @@ anvi-run-workflow -w pangenomics \
         --error=/scratch/oceanography/efadeev/DECOMB/analysis/metaG_anvio/Log/%x-%j.out \
         --cpus-per-task=10 \
         --time=1-24:00:00 \
-        --mem=50GB'
+        --mem=50GB' &
 
 
 
