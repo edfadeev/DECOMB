@@ -196,6 +196,124 @@ anvi-interactive --manual-mode \
                  --title "Bins Metabolism Heatmap" \
                  --server-only -P 5678
 
+
+
+################################
+#Generate phylogeny and pangenome for Pseudoalteromonas bin
+################################
+mkdir 08_BIN_PAN
+
+#download all the complete pseudoalteromonas genomes
+ncbi-genome-download bacteria \
+                     --assembly-level chromosome,complete \
+                     --genera Pseudoalteromonas \
+                     --metadata $WORKDIR/08_BIN_PAN/NCBI-METADATA.txt
+
+anvi-script-process-genbank-metadata -m $WORKDIR/08_BIN_PAN/NCBI-METADATA.txt \
+                                     --output-dir $WORKDIR/08_BIN_PAN/Pseudoalt_genomes \
+                                     --output-fasta-txt $WORKDIR/08_BIN_PAN/Pseudoalt_genomes.txt
+
+#extract names and paths of the fastas
+cut -f1,2 08_BIN_PAN/Pseudoalt_genomes.txt> 08_BIN_PAN/Pseudoalt_fasta.txt
+
+#add manually the bins
+cp 06_BINS/Refined_DAS_bins/bin_by_bin/Bin_84/Bin_84-contigs.fa 08_BIN_PAN/Pseudoalt_genomes/Bin_84.fa
+
+anvi-run-workflow -w contigs --get-default-config 08_BIN_PAN/contig-config.json
+
+anvi-run-workflow -w contigs \
+-c $WORKDIR/08_BIN_PAN/contig-config.json \
+--additional-params \
+--cores 48 \
+--cluster \
+'sbatch --job-name=Pseudoalt_genomes2anvio \
+        --mail-user=eduard.fadeev@univie.ac.at \
+        --output=/scratch/oceanography/efadeev/DECOMB/analysis/metaG_anvio/Log/%x-%j.out \
+        --error=/scratch/oceanography/efadeev/DECOMB/analysis/metaG_anvio/Log/%x-%j.out \
+        --cpus-per-task=6 \
+        --time=1-12:00:00 \
+        --mem=20GB'
+
+anvi-run-workflow -w phylogenomics --get-default-config 08_BIN_PAN/phylo-config.json
+
+anvi-run-workflow -w phylogenomics \
+-c $WORKDIR/08_BIN_PAN/phylo-config.json \
+--additional-params \
+--cores 10 \
+--cluster \
+'sbatch --job-name=Pseudoalt_phylogenomics \
+        --mail-user=eduard.fadeev@univie.ac.at \
+        --output=/scratch/oceanography/efadeev/DECOMB/analysis/metaG_anvio/Log/%x-%j.out \
+        --error=/scratch/oceanography/efadeev/DECOMB/analysis/metaG_anvio/Log/%x-%j.out \
+        --cpus-per-task=10 \
+        --time=1-12:00:00 \
+        --mem=40GB'
+
+#inspect the tree
+anvi-interactive --tree 08_BIN_PAN/PHYLOGENOMICS/Pseudoalteromonas_phylogenomics-proteins_GAPS_REMOVED.fa.contree \
+-p 08_BIN_PAN/phylo-profile.db --manual --server-only -P 5678
+
+################################
+#Generate pangenome for P. phenolica
+################################
+#download all genomes of P. phenolica
+ncbi-genome-download bacteria -t 161398,1315281 \
+            --assembly-level all \
+            --metadata $WORKDIR/08_BIN_PAN/Pphenol-METADATA.txt
+
+anvi-script-process-genbank-metadata -m $WORKDIR/08_BIN_PAN/Pphenol-METADATA.txt \
+                                     --output-dir $WORKDIR/08_BIN_PAN/Pphenol_genomes \
+                                     --output-fasta-txt $WORKDIR/08_BIN_PAN/Pphenol_genomes.txt
+
+#remove the annotation paths
+cut -f1,2 08_BIN_PAN/Pphenol_genomes.txt> 08_BIN_PAN/Pphenol_fasta.txt
+
+#add the paths of the bins
+tail -n 3 08_BIN_PAN/Pseudoalt_fasta.txt >> 08_BIN_PAN/Pphenol_fasta.txt
+
+#generate config file for the pangenome
+anvi-run-workflow -w pangenomics --get-default-config $WORKDIR/08_BIN_PAN/Pphenol-pangenomics-config.json
+
+#BLAST is required for the pangenomic workflow
+module load ncbiblast/2.2.26
+
+#run the pangenome workflow
+anvi-run-workflow -w pangenomics \
+-c $WORKDIR/08_BIN_PAN/Pphenol-pangenomics-config.json \
+--additional-params \
+--cores 10 \
+--cluster \
+'sbatch --job-name=Pphenol_pangenomics \
+        --mail-user=eduard.fadeev@univie.ac.at \
+        --output=/scratch/oceanography/efadeev/DECOMB/analysis/metaG_anvio/Log/%x-%j.out \
+        --error=/scratch/oceanography/efadeev/DECOMB/analysis/metaG_anvio/Log/%x-%j.out \
+        --cpus-per-task=10 \
+        --time=1-24:00:00 \
+        --mem=50GB'
+
+
+
+
+
+
+anvi-run-workflow -w phylogenomics --get-default-config 08_BIN_PAN/phylo-config.json
+
+
+
+
+
+
+
+
+
+echo -e "Genome\tpath" > $WORKDIR/08_BIN_PAN/selected-genomes.txt
+for file in $WORKDIR/08_BIN_PAN/genomes/*.fna; do 
+grep -m 1 ">" $file | sed -e "/complete*//" -  >> $WORKDIR/08_BIN_PAN/selected-genomes.txt
+done
+
+
+
+
 #############################################################################
 # draft
 #############################################################################
