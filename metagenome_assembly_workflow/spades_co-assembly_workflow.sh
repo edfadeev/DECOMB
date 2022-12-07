@@ -274,11 +274,8 @@ tail -n 3 $WORKDIR/08_BIN_PAN/Pseudoalt_fasta.txt >> $WORKDIR/08_BIN_PAN/Pphenol
 #generate config file for the pangenome
 anvi-run-workflow -w pangenomics --get-default-config $WORKDIR/08_BIN_PAN/Pphenol-pangenomics-config.json
 
-#BLAST is required for the pangenomic workflow
-module load ncbiblast/2.2.26
-
 #run the pangenome workflow
-anvi-run-workflow -w pangenomics \
+nohup anvi-run-workflow -w pangenomics \
 -c $WORKDIR/08_BIN_PAN/Pphenol-pangenomics-config.json \
 --additional-params \
 --cores 10 \
