@@ -276,8 +276,11 @@ anvi-run-workflow -w pangenomics --get-default-config $WORKDIR/08_BIN_PAN/Ppheno
 
 #run the pangenome workflow
 module load ncbiblast/2.2.26
+<<<<<<< HEAD
 
 cd $WORKDIR/08_BIN_PAN/
+=======
+>>>>>>> 40a6f621c0b5c73421321bcb9cebfb70ba27be18
 nohup anvi-run-workflow -w pangenomics \
 -c Pphenol-pangenomics-config.json \
 --additional-params \
@@ -289,7 +292,7 @@ nohup anvi-run-workflow -w pangenomics \
         --error=/scratch/oceanography/efadeev/DECOMB/analysis/metaG_anvio/Log/%x-%j.out \
         --cpus-per-task=10 \
         --time=1-24:00:00 \
-        --mem=50GB' &
+        --mem=50GB' >> $WORKDIR/08_BIN_PAN/Log/Pphenol_PAN.log &
 
 
 
