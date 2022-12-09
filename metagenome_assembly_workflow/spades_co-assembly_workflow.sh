@@ -271,16 +271,10 @@ cut -f1,2 $WORKDIR/08_BIN_PAN/Pphenol_genomes.txt> $WORKDIR/08_BIN_PAN/Pphenol_f
 #add the paths of the bins
 tail -n 3 $WORKDIR/08_BIN_PAN/Pseudoalt_fasta.txt >> $WORKDIR/08_BIN_PAN/Pphenol_fasta.txt
 
-#generate config file for the pangenome
-anvi-run-workflow -w pangenomics --get-default-config $WORKDIR/08_BIN_PAN/Pphenol-pangenomics-config.json
-
+#need to move the entire analysis to /tmp/
+#otherwise the makeblastdb is not working
 #run the pangenome workflow
-module load ncbiblast/2.2.26
-<<<<<<< HEAD
 
-cd $WORKDIR/08_BIN_PAN/
-=======
->>>>>>> 40a6f621c0b5c73421321bcb9cebfb70ba27be18
 nohup anvi-run-workflow -w pangenomics \
 -c Pphenol-pangenomics-config.json \
 --additional-params \
@@ -295,11 +289,7 @@ nohup anvi-run-workflow -w pangenomics \
         --mem=50GB' >> $WORKDIR/08_BIN_PAN/Log/Pphenol_PAN.log &
 
 
-
-
-
-
-anvi-run-workflow -w phylogenomics --get-default-config 08_BIN_PAN/phylo-config.json
+anvi-display-pan -g $WORKDIR/08_BIN_PAN/Pphenol_PAN/P_phenolica_PANGENOME-GENOMES.db -p 09_Pphenol_PAN/P_phenolica_Pan-PAN.db --server-only -P 5678
 
 
 
