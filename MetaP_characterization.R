@@ -22,35 +22,50 @@ metaP_obj0<- readRDS("data/metaproteome/metaP_ps_raw.rds")
 # number of proteins per sample
 prot_per_sample <- estimate_richness(metaP_obj0, split = TRUE, measures = "Observed") %>% 
   mutate(Sample_name = row.names(.)) %>% 
-  left_join(sample_data(metaP_obj0), by = "Sample_name")
+  left_join(sample_data(metaP_obj0), by = "Sample_name") %>% 
+  filter(Run == "B") %>% 
+  mutate(Treatment = case_when(Treatment =="Jelly" ~ "Cteno-OM", TRUE ~ Treatment),
+         Fraction = case_when(Fraction =="MP" ~ "> 0.22 um",
+                              Fraction =="EH" ~ "30 kDa - 0.22 um",
+                              Fraction =="EL" ~ "< 30 kDa")) %>% 
+  mutate(Fraction = factor(Fraction, levels =c("> 0.22 um",
+                                               "30 kDa - 0.22 um",
+                                               "< 30 kDa")),
+         Treatment = factor(Treatment, levels =c("Inoculum", "Control", "Cteno-OM")))
 
-total_prot.p <- ggplot(prot_per_sample, aes(x = Sample_name, y = Observed,
-                            fill = Treatment)) + 
-                        facet_wrap(Fraction~., scales = "free_x") +
-                        scale_fill_manual(values =c("T0"="gray50",
-                                                    "Jelly"="red",
-                                                      "Control"="blue"))+
-  geom_col()+
-  ylab("# of proteins \n")+
+
+total_prot.p <- prot_per_sample %>% 
+  ggplot(aes(x = Treatment, y = Observed, fill = Treatment, group = Replicate)) + 
+  facet_wrap(Fraction~., scales = "free_x") +
+  scale_fill_manual(values =c("T0"="gray50",
+                              "Cteno-OM"="red", 
+                              "Control"="blue"))+
+  geom_bar(position = position_dodge(width=1), 
+           stat="identity")+
+  geom_text(aes(x = Treatment, y = Observed+100, label = Replicate),
+            position = position_dodge(width=1))+
+  ylab("Number of proteins \n")+
   #scale_y_log10()+
-  theme_bw()+
-  theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank(),
-        axis.line = element_line(colour = "black"),
-        text=element_text(size=20),legend.position = "bottom", 
-        axis.title.x = element_blank(), axis.text.x = element_text(angle=90))
+  theme_EF+
+  theme(legend.position = "bottom")
 
 #save the plot
-ggsave("./Figures/total_prot.pdf", 
+ggsave("./Figures/Fig_S3-Total_prot.pdf", 
        plot = total_prot.p,
        units = "cm",
        width = 30, height = 30, 
        #scale = 1,
        dpi = 300)
 
+#calculate mean and SE for each fraction
+prot_per_sample %>% group_by(Treatment, Fraction) %>% 
+  summarise(Mean= mean(Observed), SE = se(Observed))
+
 #test differences between runs
 prot_per_sample_test <- prot_per_sample   %>%
+  filter(Treatment != "Inoculum") %>% 
   group_by(Fraction) %>% 
-  t_test(Observed ~ Run, paired = TRUE, p.adjust.method = "BH") %>%
+  t_test(Observed ~ Treatment, paired = TRUE, p.adjust.method = "BH") %>%
   add_significance()
 
 
@@ -222,3 +237,56 @@ frac_overlaps<- frac_overlaps %>% unique() %>%
          Type = case_when(grepl("C",Sample) ==TRUE ~"Control", 
                           grepl("J",Sample) ==TRUE ~"Jelly",
                           grepl("T0",Sample) ==TRUE ~ "T0"))
+
+
+
+###################
+#Protein overlaps between replicates
+###################
+
+metaP_runB_no_in <- subset_samples(metaP_runB,Treatment !="Inoculum" )
+
+y<- list()
+for (i in sample_data(metaP_runB_no_in)$Treatment){
+  sub_group <- subset_samples(metaP_runB_no_in, Treatment == i) %>% 
+    prune_taxa(taxa_sums(.)>0,.)
+  for (f in c("MP","EH","EL")){
+    sub_sample <- subset_samples(sub_group, Fraction == f) %>% 
+      prune_taxa(taxa_sums(.)>0,.)
+    for (r in c("1","2","3")){
+      sub_rep <- subset_samples(sub_sample, Replicate == r) %>% 
+        prune_taxa(taxa_sums(.)>0,.)
+    y[[paste(i,f,r,sep="_")]] <- as.character(row.names(otu_table(sub_rep)))
+    }
+  }
+}
+
+overlap.df <- pres_abs_matrix(y) %>% 
+  mutate(Shared_Control_MP = case_when(Control_MP_1==1 & 
+                                 Control_MP_2==1 & 
+                                 Control_MP_2 == 1 ~ 1,
+                                TRUE~ 0),
+         Shared_Jelly_MP = case_when(Jelly_MP_1==1 & 
+                                         Jelly_MP_2==1 & 
+                                         Jelly_MP_2 == 1 ~ 1,
+                                       TRUE~ 0),
+         Shared_Control_EH = case_when(Control_EH_1==1 & 
+                                         Control_EH_2==1 & 
+                                         Control_EH_2 == 1 ~ 1,
+                                       TRUE~ 0),
+         Shared_Jelly_EH = case_when(Jelly_EH_1==1 & 
+                                       Jelly_EH_2==1 & 
+                                       Jelly_EH_2 == 1 ~ 1,
+                                     TRUE~ 0),
+         Shared_Control_EL = case_when(Control_EL_1==1 & 
+                                         Control_EL_2==1 & 
+                                         Control_EL_2 == 1 ~ 1,
+                                       TRUE~ 0),
+         Shared_Jelly_EL = case_when(Jelly_EL_1==1 & 
+                                       Jelly_EL_2==1 & 
+                                       Jelly_EL_2 == 1 ~ 1,
+                                     TRUE~ 0))
+#sum of overlapping proteins
+overlap.df %>% 
+  select(contains("Shared")) %>% 
+  summarise_all(sum)

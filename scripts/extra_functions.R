@@ -66,6 +66,20 @@ add_nsaf=function(ps, prot_length){
   return(ps)
 }
 
+
+#ggplot related functions
+#theme
+theme_EF <- theme_bw()+
+  theme(panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        strip.background = element_blank(),
+        legend.title = element_text(size = 20),
+        legend.text = element_text(size = 18),
+        axis.text = element_text(size = 18),
+        strip.text = element_text(size = 22, face ="bold"),
+        axis.title = element_text(size = 20))
+
+#colours
 tol21rainbow<- c("#771155", "#AA4488","#CC99BB","#114477", 
                  "#4477AA","#117744","#117777","#88CCAA", 
                  "#77CCCC","#00ffff","#44AA77","#44AAAA", 

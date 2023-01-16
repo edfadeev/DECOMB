@@ -80,8 +80,10 @@ samples_df <- read.csv("./data/metaproteome/DE-COMB_all_prot_InputFiles_correcte
                        Replicate = gsub("C|J","",gsub("_.*","",File.Name)),
                        Run = case_when(grepl("_2", Sample_name) ~ "B",
                                               TRUE ~ "A"),
-                       SampleID = gsub("_2","",Sample_name)) %>% 
-                select(File.ID,SampleID,Sample_name,Treatment,Fraction,Replicate,Run)
+                       SampleID = gsub("_2","",Sample_name),
+                       Type = ifelse(Fraction =="MP", "Cellular",
+                                     "Exocellular")) %>% 
+                select(File.ID,SampleID,Sample_name,Type, Treatment,Fraction,Replicate,Run)
 
  
 
@@ -123,6 +125,47 @@ metaP_obj0<- prune_taxa(taxa_sums(metaP_obj0)>0,metaP_obj0)
 
 #save metaproteome phyloseq
 saveRDS(metaP_obj0, "data/metaproteome/metaP_ps_raw.rds")
+
+########################################
+#export only second run 
+########################################
+metaP_runB <- subset_samples(metaP_obj0, Run =="B") %>% 
+  prune_taxa(taxa_sums(.)>0,.)
+
+#generate metadata
+data_runB <- as(sample_data(metaP_runB),"data.frame") %>% 
+  mutate(Sample_name = gsub("_.*","", SampleID),
+          Group = paste(Treatment,Replicate, Fraction, sep ="_"))
+
+sample_data(metaP_runB) <- sample_data(data_runB)
+
+#save the new phyloseq
+saveRDS(metaP_runB, "data/metaproteome/metaP_ps_runB.rds")
+
+########################################
+#merge exocellular fraction of run B
+########################################
+#merge fraction
+sample_data(metaP_runB)$agg <- paste(sample_data(metaP_runB)$Sample_name,
+                                     sample_data(metaP_runB)$Type, sep="_")
+
+metaP_runB_frac <- merge_samples(metaP_runB,"agg", fun = sum)
+
+#generate new metadata
+meta_merge <- as(sample_data(metaP_runB), "data.frame") %>% 
+  select(Treatment, Type, agg) %>% 
+  unique() %>% 
+  remove_rownames %>%
+  mutate(Sample_name = agg,
+         Treatment = case_when(Treatment == "Jelly" ~ "Cteno-OM",
+                               TRUE~Treatment)) %>%
+  mutate(Treatment = factor(Treatment, levels =c("Inoculum", "Control", "Cteno-OM"))) %>% 
+  tibble::column_to_rownames(var = "agg")
+
+sample_data(metaP_runB_frac)<- meta_merge
+
+#save the new phyloseq
+saveRDS(metaP_runB_frac, "data/metaproteome/metaP_runB_merged.rds")
 
 #print session info and clean the workspace
 sessionInfo()
