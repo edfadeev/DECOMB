@@ -22,6 +22,7 @@ prot_nsaf.long<- add_nsaf(metaP_merged, "prot_length") %>%
 
 #sum up each taxa
 prot_nsaf.class.agg <- prot_nsaf.long %>% 
+  mutate(Type = factor(Type, levels = c("Exocellular","Cellular"))) %>%
   group_by(Type, Sample_name, Treatment, Class, Order) %>% 
   summarize(Tot.abundance = sum(Abundance))
 
@@ -67,10 +68,12 @@ prot_nsaf.frac.mean_Class <- prot_nsaf.frac.mean %>%
   summarize(Tot.abundance = sum(mean))
 
 
-look <- prot_nsaf.frac.mean %>% 
-  filter(Treatment!= "Inoculum",Order != "Other taxa") %>% 
+#check the different orders
+top_orders <- prot_nsaf.frac.mean %>% 
+  filter(Treatment!= "Inoculum",Order != "Other taxa") %>%
+  mutate(Type = factor(Type, levels = c("Exocellular","Cellular"))) %>% 
   group_by(Treatment, Type, Order) %>% 
-  summarize(Tot.abundance = mean(mean))
+  summarize(Tot.abundance = mean(mean), se = se(mean))
   
 
 

@@ -40,7 +40,7 @@ total_prot.p <- prot_per_sample %>%
   theme(legend.position = "bottom")
 
 #save the plot
-ggsave("./Figures/Fig_S3-Total_prot.pdf", 
+ggsave("./Figures/Figure_S3-Total_prot.pdf", 
        plot = total_prot.p,
        units = "mm",
        width = 90, height = 90, 
@@ -130,7 +130,7 @@ metaP_ordination_plot<- ggplot(data = metaP_pca.df,
                               "Cteno-OM"="red", 
                               "Control"="blue"))+
   geom_text(aes(x = PC1, y = PC2,label = Sample),
-           nudge_y= -8, size=4, colour = "gray50")+
+           nudge_y= -3, size=5, colour = "gray50")+
   xlab(paste0("PC1: ",percentVar[1],"% variance")) +
   ylab(paste0("PC2: ",percentVar[2],"% variance")) + 
   #coord_fixed()+
