@@ -60,12 +60,23 @@ ggsave("./Figures/Figure_S5-Proteins_by_bin.png",
 
 
 #how many proteins there are from each bin?
-total_prot_per_bin <- prot_nsaf.Bin.agg %>% 
-  filter(Treatment %in% c("Cteno-OM","Control")) %>% 
+#sum all proteins per sample
+metaP_totals<- readRDS("data/metaproteome/metaP_runB_merged.rds") %>% 
+  add_nsaf(., "prot_length") %>% 
+  psmelt() %>% 
   mutate(Type = factor(Type, levels =c("Cellular","Exocellular"))) %>% 
-  group_by(Type, Treatment, Bin) %>% 
-  summarize(Min_prot = min(Total_p),
-            Max_prot = max(Total_p))
+  group_by(Sample_name, Type, Treatment) %>% 
+  filter(Abundance> 0) %>% 
+  summarize(Proteins = length(Abundance))
+
+#calculate proportion of all proteins per bin per sample
+total_prot_per_bin <- prot_nsaf.Bin.agg %>% 
+  mutate(Type = factor(Type, levels =c("Cellular","Exocellular"))) %>% 
+  left_join(metaP_totals, by = c("Type", "Treatment", "Sample_name")) %>% 
+  group_by(Type, Treatment, Sample_name, Bin) %>% 
+  summarize(Prop = Total_p/Proteins,
+            Total_p = Total_p,
+            Proteins = Proteins)
 
 #########################################################
 #Explore sig. enriched proteins in binned genes       ###
@@ -82,8 +93,7 @@ DESeq_res_bins_totals <- DESeq_res %>%
 #explore manualy Bin_84 (Pseudoalteromonas)
 DESeq_res_bin_84_COG20_fun <- DESeq_res %>%  
   filter(Bin =="Bin_84", Type %in% c("Cteno-OM","Control")) %>% 
-  select(Type, Fraction, COG20_CATEGORY_function, COG20_FUNCTION_function, log2FoldChange)
-
+  select(Type, Fraction, COG20_CATEGORY_accession, COG20_CATEGORY_function, COG20_FUNCTION_function, log2FoldChange)
 
 DESeq_res_bin_84_KEGG <- DESeq_res %>%  
   filter(Bin =="Bin_84", Type %in% c("Cteno-OM","Control")) %>% 
@@ -108,7 +118,7 @@ Bin_84_Kofam_merged <- Bin_Kofam_hits %>%
 #produce list of KOs for mapping
 DESeq_res_bin_84_KO_list <- Bin_84_Kofam_merged %>%  
   mutate(log2FoldChange = case_when(is.na(log2FoldChange)==TRUE ~ -1, 
-                                    TRUE ~ log2FoldChange)) %>% 
+                                    log2FoldChange>0 ~ 1)) %>% 
   select(ko,log2FoldChange)%>% 
   tibble::deframe()
 
@@ -129,19 +139,24 @@ pathways<- c("00010", #Glycolysis / Gluconeogenesis
              "00350", #Tyrosine metabolism
              "00360", #Phenylalanine metabolism
              "00380", #Tryptophan metabolism
-             "00400" #Phenylalanine, tyrosine and tryptophan biosynthesis
+             "00400", #Phenylalanine, tyrosine and tryptophan biosynthesis
+             "02010",  #ABC transporters
+             "04974",  #Protein digestion and absorption
+             "00910",  #Nitrogen metabolism
+             "00920",  #Sulfur metabolism
+             "00071", #Fatty acid degradation
 )
 
 
 #plot in a loop all the pathways of interest for each bin
 pathview(gene.data = DESeq_res_bin_84_KO_list, 
-         pathway.id ="pathways",
+         #pathway.id =pathways,
+         pathway.id = "01212",
          species = "ko", 
          keys.align = "y", 
          kegg.native = T,
-         #map.null=FALSE,
-         #both.dirs = TRUE,
-         #discrete	=list(gene=TRUE),
+         low = "yellow",
+         high = "red",
          res = 300, cex = 0.25,
          out.suffix = "Bin_84",
          kegg.dir="./Figures/KEGG/")
