@@ -155,7 +155,7 @@ metaP_runB_frac <- merge_samples(metaP_runB,"agg", fun = sum)
 meta_merge <- as(sample_data(metaP_runB), "data.frame") %>% 
   select(Treatment, Type, agg) %>% 
   unique() %>% 
-  remove_rownames %>%
+  tibble::remove_rownames() %>%
   mutate(Sample_name = agg,
          Treatment = case_when(Treatment == "Jelly" ~ "Cteno-OM",
                                TRUE~Treatment)) %>%
