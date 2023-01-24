@@ -7,15 +7,15 @@ require(ggplot2)
 source("scripts/extra_functions.R")
 
 #load metaproteome phyloseq object
-metaP_runB<- readRDS("data/metaproteome/metaP_ps_runB.rds")
+metaP_merged<- readRDS("data/metaproteome/metaP_runB_merged.rds")
 
 ###################
 #Identify sig. enriched proteins between Jelly and Control bottles in each fraction separately
 ###################
 DESeq_res<- data.frame()
 
-for (i in c("MP","EH","EL")){
-metaP_runB_sub <- subset_samples(metaP_runB, Treatment %in% c("Control","Jelly") & Fraction == i) %>% 
+for (i in c("Cellular","Exocellular")){
+metaP_runB_sub <- subset_samples(metaP_merged, Treatment %in% c("Control","Cteno-OM") & Type == i) %>% 
                     prune_taxa(taxa_sums(.)>0,.)
 
 #run DESeq2 enrichment test
@@ -30,7 +30,7 @@ metaP.DEseq <- DESeq(metaP_runB.ddsMat, fitType="local")
 #select only the top 100 proteins and produce dataframe with metadata
 select_prot <- order(rowMeans(counts(metaP.DEseq, normalized=FALSE)),
                      decreasing=TRUE)[1:100]
-meta_df <- as.data.frame(colData(metaP.DEseq)[,c("Replicate","Treatment")])
+meta_df <- as.data.frame(colData(metaP.DEseq)[,c("Sample_name","Treatment")])
 
 #produce and save a heatmap
 pheatmap(assay(metaP.DEseq.vsd)[select_prot,], cluster_rows=TRUE, show_rownames=FALSE,
@@ -39,11 +39,11 @@ pheatmap(assay(metaP.DEseq.vsd)[select_prot,], cluster_rows=TRUE, show_rownames=
 
 
 #export results for Jelly vs. Control
-metaP.DEseq.res <- results(metaP.DEseq, name = "Treatment_Jelly_vs_Control")
+metaP.DEseq.res <- results(metaP.DEseq, contrast = c("Treatment","Cteno-OM","Control"))
 
 #export results for Jelly vs. Control with shrinked LFC estimates
 #(explained: http://bioconductor.org/packages/release/bioc/vignettes/DESeq2/inst/doc/DESeq2.html#altshrink)
-metaP.DEseq.res_LFC <- as(lfcShrink(metaP.DEseq, coef="Treatment_Jelly_vs_Control", type="apeglm"), "data.frame")%>% 
+metaP.DEseq.res_LFC <- as(lfcShrink(metaP.DEseq, coef="Treatment_Cteno.OM_vs_Control", type="apeglm"), "data.frame")%>% 
                         mutate(gene_callers_id = as.numeric(row.names(.)),
                                 Fraction = i) 
 
@@ -53,7 +53,7 @@ metaP.annotations <- as.data.frame(tax_table(metaP_runB_sub)) %>%
 #extract only significant proteins and merge with annotations
 metaP.DEseq.res.sig <- metaP.DEseq.res_LFC %>% 
                       filter(padj < 0.1 ) %>% 
-                      mutate(Type = case_when(log2FoldChange>1 ~ "Jelly",
+                      mutate(Type = case_when(log2FoldChange>1 ~ "Cteno-OM",
                                               log2FoldChange< -1 ~ "Control",
                                               TRUE ~ "Not.sig.")) %>% 
                       left_join(metaP.annotations, by = "gene_callers_id")
@@ -74,18 +74,18 @@ DESeq_res.overview<- DESeq_res %>%
 #number of proteins per family - filter out those with < 10 proteins
 metaP.DEseq.res.sig.Tax_top <- DESeq_res %>% 
   group_by(Fraction, Type, Class, Order, Family) %>% 
-  summarize(Total_prot.= length(Type)) %>% 
-  filter(Total_prot.>10)
-
+  summarize(Total_prot.= length(Fraction)) %>% 
+  mutate(Fraction = factor(Fraction, levels = c("Exocellular","Cellular")))# %>%
+  
 top_fam <- as.vector(unique(metaP.DEseq.res.sig.Tax_top$Family))
 
 #filter only families of interest and prune annotations
 DESeq_res_top_fam <- DESeq_res %>% 
-                      filter(Family %in% top_fam, Type %in% c("Jelly","Control")) %>% 
+                      filter(Family %in% top_fam, Type %in% c("Cteno-OM","Control")) %>% 
                       group_by(Fraction, Type, Class, Order, Family, COG20_CATEGORY_function, COG20_CATEGORY_accession) %>% 
                       mutate(COG20_CATEGORY_function = gsub("!!!.*","",COG20_CATEGORY_function),
                              COG20_CATEGORY_accession = gsub("!!!.*","",COG20_CATEGORY_accession),
-                             Fraction = factor(Fraction, levels = c("MP","EH","EL"))) 
+                             Fraction = factor(Fraction, levels = c("Cellular", "Exocellular"))) 
 
 
 #aggregate by category
@@ -96,11 +96,11 @@ DESeq_res_top_fam_agg <- DESeq_res_top_fam %>%
 
 
 #plot
-ggplot(DESeq_res_top_fam_agg, aes(x= Family, y= log2_mean, label = n_prot))+
+DESeq_res_top_fam_agg.p <- ggplot(DESeq_res_top_fam_agg, aes(x= Family, y= log2_mean, label = n_prot))+
   geom_errorbar(aes(ymin= log2_mean-log2_se, ymax= log2_mean+log2_se), width = 0.2)+
-  geom_point(aes( shape = Type), size = 5, colour = "black")+
+  geom_point(aes( shape = Type), size = 6, colour = "black")+
   geom_point(aes(colour = Class, shape = Type), size = 4)+
-  geom_text(nudge_x = 0.3, colour = "gray50")+
+  geom_text(nudge_x = 0.6, colour = "gray50")+
   facet_grid(.~Fraction, space= "fixed") +
   scale_colour_manual(values = tol21rainbow)+ 
   #guides(fill = guide_legend(reverse = FALSE, keywidth = 1, keyheight = 1)) +
@@ -110,76 +110,92 @@ ggplot(DESeq_res_top_fam_agg, aes(x= Family, y= log2_mean, label = n_prot))+
   geom_vline(aes(xintercept=-Inf)) +
   geom_vline(aes(xintercept=Inf))+
   coord_flip()+
-  theme_bw()+
-  theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank(), 
-        axis.line = element_line(colour = "black"),#axis.text.x = element_text(angle = 90),
-        text=element_text(size=20),
-        #legend.position = "bottom", 
-        #axis.title.x = element_blank()
-        )
+  theme_EF+
+  theme(legend.position = "bottom")
 
 #save the plot
-ggsave("./Figures/metaP_log2foldchange_per_taxa.pdf", 
-       plot = last_plot(),
-       units = "cm",
-       width = 50, height = 30, 
-       #scale = 1,
+ggsave("./Figures/Figure_5-metaP_log2foldchange.pdf", 
+       plot = DESeq_res_top_fam_agg.p,
+       units = "mm",
+       width = 170, height = 90, 
+       scale = 3,
        dpi = 300)
 
 
 #########################################################
 #Explore enr. proteins by taxa in all fractions       ###
 #########################################################
-DESeq_res_top_Vibrio <- DESeq_res_top_fam %>% 
-                          filter(Family == "Vibrionaceae") 
-
-DESeq_res_top_Vibrio_total_COG20_function <- DESeq_res_top_Vibrio%>% 
-  select(gene_callers_id, Type, Genus, COG20_FUNCTION_function, COG20_FUNCTION_accession,log2FoldChange) %>% 
-  unique() %>% 
-  group_by(Type, Genus,  COG20_FUNCTION_function, COG20_FUNCTION_accession) %>% 
-  summarize(log2_mean = mean(log2FoldChange), log2_se = se(log2FoldChange), n_prot= length(log2FoldChange)) 
-
-
-DESeq_res_top_Vibrio_total_COG20_category<- DESeq_res_top_Vibrio%>% 
-                          select(gene_callers_id, Type, Genus, COG20_CATEGORY_function, COG20_CATEGORY_accession) %>% 
-                          unique() %>% 
-                          group_by(Type, Genus,  COG20_CATEGORY_function, COG20_CATEGORY_accession) %>% 
-                          summarize(n_prot = n())
-
-
 #Pseudoalteromonas
 DESeq_res_top_Pseudoalt <- DESeq_res_top_fam %>% 
-                            filter(Family == "Pseudoalteromonadaceae")
-  
-DESeq_res_top_Pseudoalt_total_COG20_function <- DESeq_res_top_Pseudoalt%>% 
-  select(gene_callers_id, Type, Genus, COG20_FUNCTION_function, COG20_FUNCTION_accession,log2FoldChange) %>% 
-  unique() %>% 
-  group_by(Type, Genus,  COG20_FUNCTION_function, COG20_FUNCTION_accession) %>% 
-  summarize(log2_mean = mean(log2FoldChange), log2_se = se(log2FoldChange), n_prot= length(log2FoldChange)) 
+  filter(Family == "Pseudoalteromonadaceae")
 
-
+#identify the faunction categories with most of the proteins
 DESeq_res_top_Pseudoalt_total_COG20_category<- DESeq_res_top_Pseudoalt%>% 
   select(gene_callers_id, Type, Genus, COG20_CATEGORY_function, COG20_CATEGORY_accession) %>% 
   unique() %>% 
   group_by(Type, Genus,  COG20_CATEGORY_function, COG20_CATEGORY_accession) %>% 
   summarize(n_prot = n())
 
+#identify the COGs within each category
+DESeq_res_top_Pseudoalt_total_COG20_function <- DESeq_res_top_Pseudoalt%>% 
+  select(gene_callers_id, Fraction, Type, Genus, COG20_CATEGORY_function, COG20_FUNCTION_function, COG20_FUNCTION_accession,log2FoldChange) %>% 
+  unique() %>% 
+  group_by(Type, Genus, Fraction, COG20_CATEGORY_function, COG20_FUNCTION_function, COG20_FUNCTION_accession) %>% 
+  summarize(log2_mean = mean(log2FoldChange), log2_se = se(log2FoldChange), n_prot= length(log2FoldChange)) 
+
+
 #Alteromonas
 DESeq_res_top_Alteromonas <- DESeq_res_top_fam %>% 
   filter(Family == "Alteromonadaceae")
-  
-DESeq_res_top_Alteromonas_total_COG20_function <- DESeq_res_top_Alteromonas%>% 
-  select(gene_callers_id, Type, Genus, COG20_FUNCTION_function, COG20_FUNCTION_accession,log2FoldChange) %>% 
-  unique() %>% 
-  group_by(Type, Genus,  COG20_FUNCTION_function, COG20_FUNCTION_accession) %>% 
-  summarize(log2_mean = mean(log2FoldChange), log2_se = se(log2FoldChange), n_prot= length(log2FoldChange)) 
-
 
 DESeq_res_top_Alteromonas_total_COG20_category<- DESeq_res_top_Alteromonas%>% 
   select(gene_callers_id, Type, Genus, COG20_CATEGORY_function, COG20_CATEGORY_accession) %>% 
   unique() %>% 
   group_by(Type, Genus,  COG20_CATEGORY_function, COG20_CATEGORY_accession) %>% 
   summarize(n_prot = n())
+
+DESeq_res_top_Alteromonas_total_COG20_function <- DESeq_res_top_Alteromonas%>% 
+  select(gene_callers_id, Fraction, Type, Genus, COG20_CATEGORY_function, COG20_FUNCTION_function, COG20_FUNCTION_accession,log2FoldChange) %>% 
+  unique() %>% 
+  group_by(Type, Genus,  Fraction, COG20_CATEGORY_function, COG20_FUNCTION_function, COG20_FUNCTION_accession) %>% 
+  summarize(log2_mean = mean(log2FoldChange), log2_se = se(log2FoldChange), n_prot= length(log2FoldChange)) 
+
+
+#vibrio
+DESeq_res_top_Vibrio <- DESeq_res_top_fam %>% 
+                          filter(Family == "Vibrionaceae") 
+
+
+DESeq_res_top_Vibrio_total_COG20_category<- DESeq_res_top_Vibrio%>% 
+  select(gene_callers_id, Type, Genus, COG20_CATEGORY_function, COG20_CATEGORY_accession) %>% 
+  unique() %>% 
+  group_by(Type, Genus,  COG20_CATEGORY_function, COG20_CATEGORY_accession) %>% 
+  summarize(n_prot = n())
+
+DESeq_res_top_Vibrio_total_COG20_function <- DESeq_res_top_Vibrio%>% 
+  select(gene_callers_id, Type, Genus, COG20_FUNCTION_function, COG20_FUNCTION_accession,log2FoldChange) %>% 
+  unique() %>% 
+  group_by(Type, Genus,  COG20_CATEGORY_function, COG20_FUNCTION_function, COG20_FUNCTION_accession) %>% 
+  summarize(log2_mean = mean(log2FoldChange), log2_se = se(log2FoldChange), n_prot= length(log2FoldChange)) 
+
+#Pelagibacter
+DESeq_res_top_Pelagi <- DESeq_res_top_fam %>% 
+  filter(Family == "Pelagibacteraceae")
+
+DESeq_res_top_Pelagi_total_COG20_function <- DESeq_res_top_Pelagi%>% 
+  select(gene_callers_id, Type, Genus, COG20_FUNCTION_function, COG20_FUNCTION_accession,log2FoldChange) %>% 
+  unique() %>% 
+  group_by(Type, Genus,  COG20_CATEGORY_function, COG20_FUNCTION_function, COG20_FUNCTION_accession) %>% 
+  summarize(log2_mean = mean(log2FoldChange), log2_se = se(log2FoldChange), n_prot= length(log2FoldChange)) 
+
+DESeq_res_top_Pelagi_total_COG20_category<- DESeq_res_top_Pelagi%>% 
+  select(gene_callers_id, Type, Genus, COG20_CATEGORY_function, COG20_CATEGORY_accession) %>% 
+  unique() %>% 
+  group_by(Type, Genus,  COG20_CATEGORY_function, COG20_CATEGORY_accession) %>% 
+  summarize(n_prot = n())
+
+
+
 
 #Flavobacteria
 DESeq_res_top_Flavo <- DESeq_res_top_fam %>% 
@@ -197,21 +213,7 @@ DESeq_res_top_Flavo_total_COG20_category<- DESeq_res_top_Flavo%>%
   group_by(Type, Genus,  COG20_CATEGORY_function, COG20_CATEGORY_accession) %>% 
   summarize(n_prot = n())
 
-#Pelagibacter
-DESeq_res_top_Pelagi <- DESeq_res_top_fam %>% 
-                        filter(Family == "Pelagibacteraceae")
-  
-DESeq_res_top_Pelagi_total_COG20_function <- DESeq_res_top_Pelagi%>% 
-  select(gene_callers_id, Type, Genus, COG20_FUNCTION_function, COG20_FUNCTION_accession,log2FoldChange) %>% 
-  unique() %>% 
-  group_by(Type, Genus,  COG20_FUNCTION_function, COG20_FUNCTION_accession) %>% 
-  summarize(log2_mean = mean(log2FoldChange), log2_se = se(log2FoldChange), n_prot= length(log2FoldChange)) 
 
-DESeq_res_top_Pelagi_total_COG20_category<- DESeq_res_top_Pelagi%>% 
-  select(gene_callers_id, Type, Genus, COG20_CATEGORY_function, COG20_CATEGORY_accession) %>% 
-  unique() %>% 
-  group_by(Type, Genus,  COG20_CATEGORY_function, COG20_CATEGORY_accession) %>% 
-  summarize(n_prot = n())
 
 #Rhodobacters
 DESeq_res_top_Rhodo <- DESeq_res_top_fam %>% 
