@@ -58,6 +58,14 @@ ggsave("./Figures/Figure_S5-Proteins_by_bin.png",
        scale = 3,
        dpi = 300)
 
+#abundance
+Prot_abund_per_bin <- prot_nsaf.Bin.agg %>% 
+  mutate(Type = factor(Type, levels =c("Cellular","Exocellular"))) %>% 
+  group_by(Type, Treatment, Sample_name, Bin) %>% 
+  summarize(Total_prot = sum(Tot.abundance)) %>% 
+  group_by(Type, Treatment, Bin) %>% 
+  summarize(Min_abund = min(Total_prot),
+            Max_abund = max(Total_prot)) 
 
 #how many proteins there are from each bin?
 #sum all proteins per sample
@@ -103,6 +111,7 @@ DESeq_res_bin_84_KEGG <- DESeq_res %>%
 #########################################################
 #Explore KEGG pathways of Bin_84                      ###
 #########################################################
+#import annotations by gene
 Bin_Kofam_hits <- read.csv("./data/metagenome/Bins_kofam_hits.txt", 
                            sep="\t", h= T, quote = "")%>% 
   dplyr::rename("gene_callers_id" = "gene_caller_id",
@@ -113,6 +122,28 @@ Bin_84_Kofam_merged <- Bin_Kofam_hits %>%
   left_join(DESeq_res[,c("gene_callers_id","Bin","log2FoldChange")],
             by = c("gene_callers_id","Bin")) %>% 
   filter(log2FoldChange>0 | is.na(log2FoldChange))
+
+Bins_gene_calls_KEGG_modules<-Bin_84_Kofam_merged %>% 
+  filter(!is.na(log2FoldChange)) %>% 
+  tidyr::separate_rows(modules_with_ko, sep = ',')%>% 
+  dplyr::rename("kegg_module" = "modules_with_ko") %>% 
+  select(kegg_module, ko) %>% 
+  unique() %>% 
+  group_by(kegg_module) %>% 
+  summarize(Protein_KO = paste0(ko, collapse = ",")) 
+
+#Investigate metabolic pathways in the bin and produce a summary table
+Bin_84_KEGG_summary_table <- read.csv("data/metagenome/Bins_modules.txt", sep="\t", h= T) %>% 
+  filter(module_completeness >0.7 &
+         genome_name == "Bin_84") %>% 
+         select(module_category, module_subcategory, module_name,
+                kegg_module, module_completeness, kofam_hits_in_module)  %>% 
+  left_join(Bins_gene_calls_KEGG_modules, by = "kegg_module") %>% 
+  mutate(module_completeness= paste0(round(module_completeness,2)*100,"%"),
+          Protein_KO = case_when(is.na(Protein_KO)~"", TRUE~Protein_KO))
+
+#export the summary table
+write.table(Bin_84_KEGG_summary_table, "data/Table_1-KEGG_modules.txt", sep="\t", row.names = FALSE, quote = FALSE)
 
 
 #produce list of KOs for mapping
