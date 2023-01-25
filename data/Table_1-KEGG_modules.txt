@@ -1,0 +1,58 @@
+module_category	module_subcategory	module_name	kegg_module	module_completeness	kofam_hits_in_module	Protein_KO
+Carbohydrate metabolism	Central carbohydrate metabolism	Glycolysis, core module involving three-carbon compounds	M00002	83%	K00134,K00927,K01803,K01689,K15633	K01803,K00134
+Carbohydrate metabolism	Central carbohydrate metabolism	Gluconeogenesis, oxaloacetate => fructose-6P	M00003	88%	K00134,K01624,K00927,K01803,K01689,K15633,K01610	K01803,K00134,K01610
+Carbohydrate metabolism	Central carbohydrate metabolism	Pyruvate oxidation, pyruvate => acetyl-CoA	M00307	100%	K00163,K00382,K00627	K00382
+Carbohydrate metabolism	Central carbohydrate metabolism	Citrate cycle (TCA cycle, Krebs cycle)	M00009	75%	K01676,K01679,K00382,K01682,K00242,K00240,K00241,K01902,K01903,K01647,K00164,K00239,K00658	K00382,K01647,K00658,K01903
+Carbohydrate metabolism	Central carbohydrate metabolism	Citrate cycle, second carbon oxidation, 2-oxoglutarate => oxaloacetate	M00011	80%	K01676,K01679,K00382,K00242,K00240,K00241,K01902,K01903,K00164,K00239,K00658	K00382,K00658,K01903
+Carbohydrate metabolism	Central carbohydrate metabolism	Pentose phosphate pathway, non-oxidative phase, fructose 6P => ribose 5P	M00007	75%	K00616,K01783,K01807	K00616
+Carbohydrate metabolism	Central carbohydrate metabolism	PRPP biosynthesis, ribose 5P => PRPP	M00005	100%	K00948	K00948
+Carbohydrate metabolism	Other carbohydrate metabolism	Galactose degradation, Leloir pathway, galactose => alpha-D-glucose-1P	M00632	75%	K00849,K00965,K01785	
+Carbohydrate metabolism	Other carbohydrate metabolism	Nucleotide sugar biosynthesis, galactose => UDP-galactose	M00554	100%	K00849,K00965	
+Carbohydrate metabolism	Other carbohydrate metabolism	Glyoxylate cycle	M00012	80%	K01638,K01637,K01682,K01647	K01647,K01637
+Energy metabolism	Carbon fixation	Reductive pentose phosphate cycle, ribulose-5P => glyceraldehyde-3P	M00166	75%	K00134,K00927,K00855	K00134
+Energy metabolism	Carbon fixation	Phosphate acetyltransferase-acetate kinase pathway, acetyl-CoA => acetate	M00579	100%	K13788,K00925	
+Energy metabolism	Sulfur metabolism	Assimilatory sulfate reduction, sulfate => H2S	M00176	89%	K00860,K00380,K00381,K00390,K00957	
+Energy metabolism	ATP synthesis	Succinate dehydrogenase, prokaryotes	M00149	100%	K00242,K00240,K00241,K00239	
+Energy metabolism	ATP synthesis	Cytochrome bc1 complex respiratory unit	M00151	100%	K00413,K00412,K00411	K00411
+Energy metabolism	ATP synthesis	Cytochrome c oxidase, prokaryotes	M00155	100%	K02275,K02274,K02276	
+Energy metabolism	ATP synthesis	Cytochrome c oxidase, cbb3-type	M00156	100%	K00407,K00406,K00404,K00405	
+Energy metabolism	ATP synthesis	F-type ATPase, prokaryotes and chloroplasts	M00157	100%	K02109,K02108,K02111,K02110,K02112,K02113,K02114,K02115	K02111,K02112
+Lipid metabolism	Fatty acid metabolism	Fatty acid biosynthesis, initiation	M00082	100%	K18473,K00648,K01963,K01962,K02160,K01961,K00645	
+Lipid metabolism	Fatty acid metabolism	Fatty acid biosynthesis, elongation	M00083	100%	K00209,K00059,K01716,K02372,K09458	K00059
+Lipid metabolism	Fatty acid metabolism	beta-Oxidation, acyl-CoA synthesis	M00086	100%	K01897	
+Lipid metabolism	Fatty acid metabolism	beta-Oxidation	M00087	100%	K01825,K00632,K01782,K01692,K00249,K06445	K00249
+Nucleotide metabolism	Purine metabolism	Inosine monophosphate biosynthesis, PRPP + glutamine => IMP	M00048	75%	K11175,K01933,K01923,K01945,K00602,K00764,K01588,K01589	
+Nucleotide metabolism	Pyrimidine metabolism	Uridine monophosphate biosynthesis, glutamine (+ PRPP) => UMP	M00051	83%	K01591,K00762,K01955,K01956,K01465,K00254	K01955
+Amino acid metabolism	Serine and threonine metabolism	Serine biosynthesis, glycerate-3P => serine	M00020	100%	K00831,K01079,K00058	
+Amino acid metabolism	Serine and threonine metabolism	Betaine biosynthesis, choline => betaine	M00555	100%	K00108,K00130	
+Amino acid metabolism	Cysteine and methionine metabolism	Methionine biosynthesis, apartate => homoserine => methionine	M00017	71%	K00651,K00548,K00133,K01739,K00549,K01760	
+Amino acid metabolism	Cysteine and methionine metabolism	Methionine salvage pathway	M00034	80%	K08964,K08967,K00899,K09880,K08963,K01243,K01611,K00797	
+Amino acid metabolism	Branched-chain amino acid metabolism	Leucine biosynthesis, 2-oxoisovalerate => 2-oxoisocaproate	M00432	100%	K00052,K01704,K01703,K01649	
+Amino acid metabolism	Lysine metabolism	Lysine biosynthesis, succinyl-DAP pathway, aspartate => lysine	M00016	89%	K00133,K00674,K01586,K01778,K00821,K00215,K01714,K01439	K00821
+Amino acid metabolism	Lysine metabolism	Lysine biosynthesis, DAP aminotransferase pathway, aspartate => lysine	M00527	71%	K00133,K01586,K01778,K00215,K01714	
+Amino acid metabolism	Arginine and proline metabolism	Ornithine biosynthesis, glutamate => ornithine	M00028	100%	K01438,K00145,K00821,K00930,K14682	K00821
+Amino acid metabolism	Arginine and proline metabolism	Arginine biosynthesis, ornithine => arginine	M00844	100%	K01940,K00611,K01755	
+Amino acid metabolism	Arginine and proline metabolism	Arginine biosynthesis, glutamate => acetylcitrulline => arginine	M00845	71%	K01438,K00145,K00821,K01940,K01755	K00821
+Amino acid metabolism	Arginine and proline metabolism	Proline biosynthesis, glutamate => proline	M00015	100%	K00931,K00286,K00147	
+Amino acid metabolism	Arginine and proline metabolism	Arginine succinyltransferase pathway, arginine => glutamate	M00879	80%	K05526,K06447,K00673,K01484	
+Amino acid metabolism	Polyamine biosynthesis	Polyamine biosynthesis, arginine => agmatine => putrescine => spermidine	M00133	75%	K01611,K00797,K01480	K01480
+Amino acid metabolism	Histidine metabolism	Histidine degradation, histidine => N-formiminoglutamate => glutamate	M00045	100%	K01479,K01468,K01712,K01745	K01745,K01712
+Amino acid metabolism	Aromatic amino acid metabolism	Shikimate pathway, phosphoenolpyruvate + erythrose-4P => chorismate	M00022	100%	K01736,K00800,K01735,K00891,K00014,K03786,K01626	
+Amino acid metabolism	Aromatic amino acid metabolism	Tryptophan biosynthesis, chorismate => tryptophan	M00023	100%	K01658,K13498,K00766,K01657,K01695,K01696,K01609	
+Amino acid metabolism	Other amino acid metabolism	Glutathione biosynthesis, glutamate => glutathione	M00118	100%	K01919,K01920	
+Glycan metabolism	Lipopolysaccharide metabolism	KDO2-lipid A biosynthesis, Raetz pathway, LpxL-LpxM type	M00060	89%	K02527,K03269,K02517,K02536,K00748,K00677,K02535,K00912	
+Glycan metabolism	Lipopolysaccharide metabolism	KDO2-lipid A biosynthesis, Raetz pathway, non-LpxL-LpxM type	M00866	89%	K02527,K03269,K02517,K02536,K00748,K00677,K02535,K00912	
+Glycan metabolism	Lipopolysaccharide metabolism	CMP-KDO biosynthesis	M00063	100%	K03270,K06041,K00979,K01627	
+Glycan metabolism	Lipopolysaccharide metabolism	ADP-L-glycero-D-manno-heptose biosynthesis	M00064	80%	K03271,K03272,K03273	
+Metabolism of cofactors and vitamins	Cofactor and vitamin metabolism	Pyridoxal-P biosynthesis, erythrose-4P => pyridoxal-P	M00124	100%	K03474,K03472,K00831,K00097,K00275,K03473	
+Metabolism of cofactors and vitamins	Cofactor and vitamin metabolism	NAD biosynthesis, aspartate => quinolinate => NAD	M00115	100%	K00969,K00278,K01916,K03517,K00767	
+Metabolism of cofactors and vitamins	Cofactor and vitamin metabolism	Coenzyme A biosynthesis, pantothenate => CoA	M00120	100%	K03525,K00954,K13038,K00859	
+Metabolism of cofactors and vitamins	Cofactor and vitamin metabolism	Pimeloyl-ACP biosynthesis, BioC-BioH pathway, malonyl-ACP => pimeloyl-ACP	M00572	83%	K00059,K02372,K02170,K02169,K09458	K00059
+Metabolism of cofactors and vitamins	Cofactor and vitamin metabolism	Biotin biosynthesis, pimeloyl-ACP/CoA => biotin	M00123	75%	K00652,K00833,K01935	
+Metabolism of cofactors and vitamins	Cofactor and vitamin metabolism	Tetrahydrofolate biosynthesis, GTP => THF	M00126	100%	K00950,K01633,K00796,K01077,K01113,K09007,K11754,K00287	
+Metabolism of cofactors and vitamins	Cofactor and vitamin metabolism	Siroheme biosynthesis, glutamyl-tRNA => siroheme	M00846	92%	K02496,K01749,K01719,K01698,K01845,K02492,K02303	K01698
+Metabolism of cofactors and vitamins	Cofactor and vitamin metabolism	Heme biosynthesis, animals and fungi, glycine => heme	M00868	75%	K01749,K01719,K01698,K01599,K00228,K01772	K01698
+Metabolism of cofactors and vitamins	Cofactor and vitamin metabolism	Heme biosynthesis, plants and bacteria, glutamate => heme	M00121	90%	K01885,K01749,K01719,K01698,K01599,K02495,K01845,K02492,K00228,K01772	K01698,K01885
+Metabolism of cofactors and vitamins	Cofactor and vitamin metabolism	Heme biosynthesis, bacteria, glutamyl-tRNA => coproporphyrin III => heme	M00926	78%	K01749,K01719,K01698,K01599,K01845,K02492,K01772	K01698
+Metabolism of cofactors and vitamins	Cofactor and vitamin metabolism	Cobalamin biosynthesis, cobyrinate a,c-diamide => cobalamin	M00122	100%	K02233,K00768,K02227,K02231,K02232,K02226,K19221	
+Metabolism of cofactors and vitamins	Cofactor and vitamin metabolism	Ubiquinone biosynthesis, prokaryotes, chorismate (+ polyprenyl-PP) => ubiquinol	M00117	89%	K03179,K03181,K00568,K03184,K03186,K03183,K03185,K03182	K00568,K03183
