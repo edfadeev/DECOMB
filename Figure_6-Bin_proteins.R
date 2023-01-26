@@ -134,16 +134,16 @@ Bins_gene_calls_KEGG_modules<-Bin_84_Kofam_merged %>%
 
 #Investigate metabolic pathways in the bin and produce a summary table
 Bin_84_KEGG_summary_table <- read.csv("data/metagenome/Bins_modules.txt", sep="\t", h= T) %>% 
-  filter(module_completeness >0.7 &
+  filter(#module_completeness >0.7 &
          genome_name == "Bin_84") %>% 
          select(module_category, module_subcategory, module_name,
                 kegg_module, module_completeness, kofam_hits_in_module)  %>% 
   left_join(Bins_gene_calls_KEGG_modules, by = "kegg_module") %>% 
-  mutate(module_completeness= paste0(round(module_completeness,2)*100,"%"),
-          Protein_KO = case_when(is.na(Protein_KO)~"", TRUE~Protein_KO))
+  mutate(module_completeness= paste0(round(module_completeness,2)*100,"%")) %>% 
+  filter(!is.na(Protein_KO))
 
 #export the summary table
-write.table(Bin_84_KEGG_summary_table, "data/Table_1-KEGG_modules.txt", sep="\t", row.names = FALSE, quote = FALSE)
+write.table(Bin_84_KEGG_summary_table, "data/Table_2-KEGG_modules.txt", sep="\t", row.names = FALSE, quote = FALSE)
 
 
 #produce list of KOs for mapping
@@ -153,6 +153,11 @@ DESeq_res_bin_84_KO_list <- Bin_84_Kofam_merged %>%
   select(ko,log2FoldChange)%>% 
   tibble::deframe()
 
+#export KOs for exploration on KEGG website
+KOs_for_website <- data.frame(KOs = names(DESeq_res_bin_84_KO_list), colours = DESeq_res_bin_84_KO_list) %>% 
+  mutate(colours = case_when(colours ==1 ~ "red,black",
+                             TRUE ~ "yellow,black")) %>% 
+  write.table("KOs_Bin_84.txt", sep="\t", row.names = FALSE, quote = FALSE)
 
 #pathways of interest
 pathways<- c("00010", #Glycolysis / Gluconeogenesis
