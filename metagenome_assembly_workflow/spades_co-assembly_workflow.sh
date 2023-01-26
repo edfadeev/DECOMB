@@ -5,7 +5,7 @@ ssh -L 5678:localhost:5678 slurm
 module load conda
 
 #workflow for co-assembly of metagenomes using SPAdes and annotation using Anvio
-conda activate anvio_7.1
+conda activate anvio-dev
 
 #Set up the path to the working directory and the scripts directory
 DECOMB_git=/scratch/oceanography/efadeev/DECOMB/DECOMB_git
@@ -274,22 +274,26 @@ tail -n 3 $WORKDIR/08_BIN_PAN/Pseudoalt_fasta.txt >> $WORKDIR/08_BIN_PAN/Pphenol
 #need to move the entire analysis to /tmp/
 #otherwise the makeblastdb is not working
 #run the pangenome workflow
+screen -S anvio_snakemake
 
-nohup anvi-run-workflow -w pangenomics \
--c Pphenol-pangenomics-config.json \
+anvi-run-workflow -w pangenomics \
+-c Pphenol_pangenome.json \
 --additional-params \
---cores 10 \
+--jobs 10 \
 --cluster \
 'sbatch --job-name=Pphenol_pangenomics \
         --mail-user=eduard.fadeev@univie.ac.at \
-        --output=/scratch/oceanography/efadeev/DECOMB/analysis/metaG_anvio/Log/%x-%j.out \
-        --error=/scratch/oceanography/efadeev/DECOMB/analysis/metaG_anvio/Log/%x-%j.out \
-        --cpus-per-task=10 \
+        --output=/scratch/oceanography/efadeev/DECOMB/analysis/Pphenol_pangenomics/%x-%j.out \
         --time=1-24:00:00 \
-        --mem=50GB' >> $WORKDIR/08_BIN_PAN/Log/Pphenol_PAN.log &
+        --mem=50GB'
 
+##!!!!#######
+#due to some unclear configuration of the cluster
+#the makeblastdb command needs to be executed separately with output on tmp
 
-anvi-display-pan -g $WORKDIR/08_BIN_PAN/Pphenol_PAN/P_phenolica_PANGENOME-GENOMES.db -p 09_Pphenol_PAN/P_phenolica_Pan-PAN.db --server-only -P 5678
+#inspect the pangenome
+anvi-display-pan -g $WORKDIR/03_PAN/P_phenolica_pangenome-GENOMES.db \
+-p $WORKDIR/03_PAN/P_phenolica_pangenome-PAN.db --server-only -P 5678
 
 
 
