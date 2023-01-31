@@ -26,7 +26,9 @@ prot_nsaf.Bin.agg <- metaP_in_bins.long %>%
   group_by(Sample_name, Type, Treatment, Bin) %>% 
   filter(Abundance> 0) %>% 
   summarize(Tot.abundance = sum(Abundance),
-            Total_p = length(Abundance))
+            Total_p = length(Abundance)) %>% 
+  group_by(Type, Treatment, Bin) %>% 
+  summarize(Tot.abundance = mean(Tot.abundance))
 
 #remove below 1% ra
 Bins <- sort(as.character(unique(prot_nsaf.Bin.agg$Bin[!prot_nsaf.Bin.agg$Tot.abundance<0.01])))
@@ -39,7 +41,7 @@ prot_nsaf.Bin.agg$Bin <- factor(prot_nsaf.Bin.agg$Bin,
 
 #plot
 prot_Bin.p<- ggplot(prot_nsaf.Bin.agg, 
-                         aes(x = Sample_name, y = Tot.abundance, 
+                         aes(x = Treatment, y = Tot.abundance, 
                              fill = Bin)) + 
   facet_wrap(.~Type, scales = "free_x") +
   geom_bar(position="stack", stat="identity")+
@@ -51,7 +53,7 @@ prot_Bin.p<- ggplot(prot_nsaf.Bin.agg,
 
 
 #save the plot
-ggsave("./Figures/Figure_S5-Proteins_by_bin.png", 
+ggsave("./Figures/Figure_S5-Proteins_by_bin.pdf", 
        plot = prot_Bin.p,
        units = "mm",
        width = 120, height = 90, 

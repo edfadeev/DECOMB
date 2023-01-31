@@ -107,7 +107,7 @@ ggarrange(
 
 
 #save the plot
-ggsave("./Figures/Figure_1-Bacteria_cells.png",
+ggsave("./Figures/Figure_1-Bacteria_cells.pdf",
        plot = last_plot(),
        units = "mm",
        width = 90, height = 50, 

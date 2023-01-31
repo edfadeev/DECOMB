@@ -68,15 +68,33 @@ DESeq_res.overview<- DESeq_res %>%
   group_by(Fraction, Type) %>% 
   summarize(Total_prot.= length(Type))
 
+
+###################
+#Explore the significantly enr. proteins
+###################
+
+DESeq_res_Cteno_cell <- DESeq_res %>% 
+                  filter(Fraction =="Cellular",
+                         log2FoldChange >15) %>% 
+                  select(c("InterPro_function","KeggGhostKoala_function",
+                         "KeggGhostKoala_accession","KOfam_accession","KOfam_function","Family", "log2FoldChange"))
+
+
+DESeq_res_Cteno_Exo <- DESeq_res %>% 
+  filter(Fraction =="Exocellular",
+         #log2FoldChange >15
+         ) %>% 
+  select(c("InterPro_function","KeggGhostKoala_function",
+           "KeggGhostKoala_accession","KOfam_accession","KOfam_function","Family", "log2FoldChange"))
+
 ###################
 #summarize the significantly enr. proteins by Taxonomic orders
 ###################
 #number of proteins per family 
 metaP.DEseq.res.sig.Tax_top <- DESeq_res %>% 
   group_by(Fraction, Type, Class, Order, Family, Genus) %>% 
-  summarize(Total_prot.= length(Fraction)) %>% 
-  mutate(Fraction = factor(Fraction, levels = c("Exocellular","Cellular")))# %>%
-  
+  summarize(Total_prot.= length(Fraction))
+
 top_fam <- as.vector(unique(metaP.DEseq.res.sig.Tax_top$Family))
 
 #filter only families of interest and prune annotations
@@ -115,7 +133,7 @@ DESeq_res_top_fam_agg.p <- ggplot(DESeq_res_top_fam_agg, aes(x= Genus, y= log2_m
 ggsave("./Figures/Figure_5-metaP_log2foldchange.pdf", 
        plot = DESeq_res_top_fam_agg.p,
        units = "mm",
-       width = 170, height = 90, 
+       width = 120, height = 90, 
        scale = 3,
        dpi = 300)
 

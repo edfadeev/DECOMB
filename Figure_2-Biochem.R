@@ -46,7 +46,7 @@ meta.p <- ML_metadata_means %>%
   theme(legend.position = "bottom")
 
 #save the plot
-ggsave("./Figures/Figure_2-Biochem.png",
+ggsave("./Figures/Figure_2-Biochem.pdf",
        plot = last_plot(),
        units = "mm",
        width = 50, height = 90, 

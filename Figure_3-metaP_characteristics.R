@@ -13,7 +13,6 @@ source("scripts/extra_functions.R")
 #load metaproteome phyloseq object
 metaP_runB_merged<- readRDS("data/metaproteome/metaP_runB_merged.rds")
 
-
 ###################
 #Plot number of proteins per sample
 ###################
@@ -40,7 +39,7 @@ total_prot.p <- prot_per_sample %>%
   theme(legend.position = "bottom")
 
 #save the plot
-ggsave("./Figures/Figure_S3-Total_prot.pdf", 
+ggsave("./Figures/Figure_S1-Total_prot.pdf", 
        plot = total_prot.p,
        units = "mm",
        width = 90, height = 90, 
@@ -49,7 +48,8 @@ ggsave("./Figures/Figure_S3-Total_prot.pdf",
 
 #calculate mean and SE for each fraction
 prot_per_sample %>% group_by(Treatment, Type) %>% 
-  summarise(Mean= mean(Observed), SE = se(Observed))
+  summarise(Min= min(Observed), Max = max(Observed),
+            Mean = mean(Observed), SE=se(Observed))
 
 ###################
 #Protein overlaps between fraction

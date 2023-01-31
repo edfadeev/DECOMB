@@ -144,8 +144,8 @@ anvi-import-collection --collection-name Refined_DAS_bins \
                         
 
 #add taxonomy to each bin for visualization
-awk '{print $1,$11,$12}' $WORKDIR/06_BINS/Refined_DAS_bins/bins_summary.txt > $WORKDIR/06_BINS/Refined_DAS_bins_tax.txt
-sed -i "1s/.*/item_name Order Family/" $WORKDIR/06_BINS/Refined_DAS_bins_tax.txt
+awk '{print $1,$10,$11,$12}' $WORKDIR/06_BINS/Refined_DAS_bins/bins_summary.txt > $WORKDIR/06_BINS/Refined_DAS_bins_tax.txt
+sed -i "1s/.*/item_name Class Order Family/" $WORKDIR/06_BINS/Refined_DAS_bins_tax.txt
 sed -i 's/ /\t/g' $WORKDIR/06_BINS/Refined_DAS_bins_tax.txt
 
 #explore the selected bins collection
@@ -276,14 +276,16 @@ tail -n 3 $WORKDIR/08_BIN_PAN/Pseudoalt_fasta.txt >> $WORKDIR/08_BIN_PAN/Pphenol
 #run the pangenome workflow
 screen -S anvio_snakemake
 
+WORKDIR=/scratch/oceanography/efadeev/DECOMB/analysis/Pphenol_pangenomics/
+
 anvi-run-workflow -w pangenomics \
 -c Pphenol_pangenome.json \
 --additional-params \
 --jobs 10 \
 --cluster \
 'sbatch --job-name=Pphenol_pangenomics \
-        --mail-user=eduard.fadeev@univie.ac.at \
-        --output=/scratch/oceanography/efadeev/DECOMB/analysis/Pphenol_pangenomics/%x-%j.out \
+        --mail-user=ALL \
+        --output=/scratch/oceanography/efadeev/DECOMB/analysis/Pphenol_pangenomics/00_LOGS/%x-%j.out \
         --time=1-24:00:00 \
         --mem=50GB'
 

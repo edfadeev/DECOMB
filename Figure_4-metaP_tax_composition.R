@@ -22,7 +22,7 @@ prot_nsaf.long<- add_nsaf(metaP_merged, "prot_length") %>%
 
 #sum up each taxa
 prot_nsaf.class.agg <- prot_nsaf.long %>% 
-  mutate(Type = factor(Type, levels = c("Exocellular","Cellular"))) %>%
+  mutate(Type = factor(Type, levels = c("Cellular","Exocellular"))) %>%
   group_by(Type, Sample_name, Treatment, Class, Order) %>% 
   summarize(Tot.abundance = sum(Abundance))
 
@@ -54,7 +54,7 @@ prot_tax_comp.p<- ggplot(prot_nsaf.frac.mean,
   theme(legend.position = "bottom")
 
 #save the plot
-ggsave("./Figures/Figure_4-MetaP_tax_comp.pdf", 
+ggsave("./Figures/Figure_4-MetaP_tax_comp.png", 
        plot = prot_tax_comp.p,
        units = "mm",
        width = 120, height = 90, 
