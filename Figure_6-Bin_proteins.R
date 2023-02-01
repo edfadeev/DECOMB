@@ -53,10 +53,10 @@ prot_Bin.p<- ggplot(prot_nsaf.Bin.agg,
 
 
 #save the plot
-ggsave("./Figures/Figure_S5-Proteins_by_bin.pdf", 
+ggsave("./Figures/Figure_7-Proteins_by_bin.pdf", 
        plot = prot_Bin.p,
        units = "mm",
-       width = 120, height = 90, 
+       width = 90, height = 90, 
        scale = 3,
        dpi = 300)
 
