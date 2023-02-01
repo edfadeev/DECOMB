@@ -2,6 +2,8 @@
 .Rhistory
 .RData
 .Ruserdata
-.png
-.pdf
+Figures/*.png
+Figures/**/*.png
+Figures/**/*.pdf
 .xml
+*.png
