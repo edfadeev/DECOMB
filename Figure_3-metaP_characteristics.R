@@ -162,6 +162,69 @@ boxplot(mod)
 mod.HSD <- TukeyHSD(mod)
 mod.HSD
 
+
+
+###################
+#Compare number of proteins between the ML powder and the microcosms
+###################
+#import sample list
+samples_df <- read.csv("./data/metaproteome/Mleidyi_transcriptome_MASCOT_InputFiles.txt",
+                       sep="\t", h= T) %>% 
+  #mutate(File.Name = case_when(File.Name =="T0_EL_200616145603.raw" ~ "T0_EL (2).raw",
+  #                            TRUE ~ File.Name)) %>% 
+  mutate(Sample_name= gsub("\\.raw","",basename(File.Name)))
+
+
+#select only replicate B (in consistency with the rest of the analysis)
+samples_df_selected <- samples_df %>% filter(grepl('_2|(2)', Sample_name))%>% 
+  pull(Sample_name)
+
+#import PD output
+PD_df <- read.csv("data/metaproteome/Mleidyi_transcriptome_MASCOT_Proteins.txt",
+                  sep="\t", h= T)%>% 
+  
+  #select only Master Proteins with unique peptides
+  filter(Master=="IsMasterProtein") %>%  
+  filter(Number.of.PSMs >=2 , Number.of.Unique.Peptides>=1)%>% 
+  
+  #replace filenames with sample names
+  rename_with(~gsub("Abundance\\.|\\.Sample","",.), everything()) %>% 
+  rename_at(all_of(samples_df$File.ID), ~ samples_df$Sample_name) %>% 
+  
+  #subset the samples of interest
+  select(c(samples_df_selected)) %>% 
+  
+  #summarize the EL and EH fractions for the microcosms and remove the separated fractions
+  mutate_all(funs(replace_na(., 0))) %>% 
+  mutate(J1 = rowSums(across(starts_with("J1"))),
+         J2 = rowSums(across(starts_with("J2"))),
+         J3 = rowSums(across(starts_with("J3")))) %>% 
+  select(-contains(c("EH","EL"))) %>% 
+  
+  #summarize the fractions of the powder
+  mutate(ML_powder=rowSums(across(contains("_")))) %>% 
+  select(ML_powder,starts_with("J")) %>% 
+  
+  #remove proteins that were not observed in the powder
+  filter(ML_powder>0)
+
+
+#summarize observed proteins per sample and plot
+data.frame(Sample = names(PD_df), Obs_prot = colSums(PD_df != 0)) %>% 
+  ggplot(aes(x=Sample, y=Obs_prot, label = Obs_prot))+
+  geom_col()+ geom_text(nudge_y = 100)+
+  ylab("Number of proteins \n")+
+  #scale_y_log10()+
+  theme_EF
+
+#save the plot
+ggsave("./Figures/Figure_S1-Cteno_prot.pdf", 
+       plot = last_plot(),
+       units = "mm",
+       width = 90, height = 90, 
+       scale = 3,
+       dpi = 300)
+
 ###################
 #print session info and clean the workspace
 ###################
