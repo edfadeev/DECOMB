@@ -69,15 +69,12 @@ prot_nsaf.frac.mean_Class <- prot_nsaf.frac.mean %>%
 
 
 #check the different orders
-top_orders <- prot_nsaf.frac.mean %>% 
+top_orders <- prot_nsaf.long %>% 
   filter(Treatment!= "Inoculum",Order != "Other taxa") %>%
   mutate(Type = factor(Type, levels = c("Exocellular","Cellular"))) %>% 
   group_by(Treatment, Type, Order) %>% 
-  summarize(Tot.abundance = mean(mean), se = se(mean))
+  summarize(Tot.abundance = sum(Abundance))
   
-
-
-
 ###################
 #print session info and clean the workspace
 ###################

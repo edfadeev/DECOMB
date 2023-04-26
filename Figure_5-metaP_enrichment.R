@@ -72,6 +72,7 @@ DESeq_res.overview<- DESeq_res %>%
 ###################
 #Explore the significantly enr. proteins
 ###################
+DESeq_res<- read.csv("data/DESEq_res.csv")
 
 DESeq_res_Cteno_cell <- DESeq_res %>% 
                   filter(Fraction =="Cellular",
@@ -133,7 +134,7 @@ DESeq_res_top_fam_agg.p <- ggplot(DESeq_res_top_fam_agg, aes(x= Genus, y= log2_m
 ggsave("./Figures/Figure_5-metaP_log2foldchange.pdf", 
        plot = DESeq_res_top_fam_agg.p,
        units = "mm",
-       width = 120, height = 90, 
+       width = 90, height = 90, 
        scale = 3,
        dpi = 300)
 

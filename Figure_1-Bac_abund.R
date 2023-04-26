@@ -9,11 +9,7 @@ source("scripts/extra_functions.R")
 ######################################
 #import the dataset
 ML_metadata <- read.table("data/ML_metadata.txt",
-                         h = TRUE, sep="\t", dec = ",", blank.lines.skip = TRUE) %>% 
-                  filter(!Treatment=="") %>% 
-                  mutate(Treatment = case_when(Treatment == "J" ~ "Cteno-OM",
-                                               Treatment == "C" ~ "Control"),
-                         Nitrogen = NO3+NO2)
+                         h = TRUE)
 
 Bac_abund_mean <- ML_metadata %>% 
   reshape2::melt(id.vars =c("Time", "Treatment", "Bottle"))%>% 
@@ -72,12 +68,14 @@ Abund.p <- Bac_abund_mean %>%
 fish_plots <- lapply(c("Production","Respiration"), function (i)
   FiSH.mean %>% 
     filter(Method == i, Time == 21) %>% 
-    ggplot(aes(x = Taxa, y = value_mean, colour = Treatment, group = Taxa))+
-    geom_errorbar(aes(ymin= value_mean-value_se, ymax= value_mean+value_se), width = 0.2)+
-    geom_point(size = 5, colour = "black")+
-    geom_point(size = 4)+
+    ggplot(aes(x = Taxa, y = value_mean, fill = Treatment, group = interaction(Taxa,Treatment)))+
+    geom_errorbar(aes(ymin= value_mean-value_se, ymax= value_mean+value_se),
+                  width = 0.2,  position = position_dodge(1))+
+    #geom_point(size = 5, colour = "black")+
+    #geom_point(size = 4)+
+    geom_col(position="dodge")+
     #scale_colour_manual(values = tol21rainbow)+
-    scale_colour_manual(values =c(#"Innoculum"="gray50",
+    scale_fill_manual(values =c(#"Innoculum"="gray50",
       "Cteno-OM"="red",
       "Control"="blue"))+
     #facet_grid( . ~ Method, scales = "free")+
@@ -116,122 +114,38 @@ ggsave("./Figures/Figure_1-Bacteria_cells.pdf",
 
 
 ######################################
-# Calculate growth rates
+# Calculate growth rate and growth efficeincy
 ######################################
+#define the growth timeframe
+t.start <- 9
+t.end <- 21
+
 ML_metadata %>% 
   select(Treatment, Bottle, Time,Abundance) %>% 
-  filter(Time %in%c(2,21)) %>% 
+  filter(Time %in%c(t.start,t.end)) %>% 
   group_by(Treatment, Bottle) %>% 
-  summarize(generations = log2(Abundance[Time == 21]/ Abundance[Time == 2])) %>% 
-  mutate(gen_time = 21/generations,
-         growth_rate = 24/gen_time)
+  summarize(growth_rate = (2^(log2(Abundance[Time == t.end]/ Abundance[Time == t.start])/(t.end-t.start))-1)) #growth rate per hour
+         
 
+
+ML_metadata %>% 
+  select(Treatment, Bottle, Time,Abundance, DOC)%>% 
+  filter(Time %in%c(t.start,t.end)) %>% 
+  group_by(Treatment, Bottle) %>% 
+  #summarize(DOC.mean = mean(DOC),
+  #          Abundance.mean = mean(Abundance)) %>% 
+  #group_by(Treatment, Bottle) %>% 
+  mutate(d.DOC = DOC[Time==t.start]-DOC[Time==t.end], # carbon drawdown
+         d.Abund = Abundance[Time == t.end]-Abundance[Time == t.start], 
+         BCD = d.DOC/(t.end-t.start), # bacterial carbon demand (umol C L-1 h-1)
+         BP.gr=d.Abund*1000*20*(1E-9)/((t.end-t.start)), # Bacterial production (ugr C L-1 h-1), 20fg C per cell
+         BP=BP.gr/12, # Bacterial production (umol C L-1 h-1), 20fg C per cell
+         BGE = BP/BCD) %>%
+  #filter(Time %in%c(t.end)) #%>% 
+  View()
+              
 
 #print session info and clean the workspace
 sessionInfo()
 rm(list = ls())
 gc()
-
-
-######################################
-# Plot cell abundances, DON, ammonia and phosphate
-######################################
-metadata.p <- ML_metadata_mean %>% 
-  filter(!is.na(mean),
-         #Time < 100,
-         variable %in% c("Abundance","TDN","NH4","PO43")) %>% 
-  ggplot(aes(x = Time, y = mean, group = Treatment, colour = Treatment))+
-  geom_errorbar(aes(ymin= mean-se, ymax= mean+se), width = 0.2)+
-  geom_point(size = 4, colour = "black")+
-  geom_point(size = 3)+
-  geom_line(linetype=2)+
-  scale_y_continuous(n.breaks=4)+
-  labs(x="Time (hours)", 
-       y= expression(paste("Concentration (# ",mL^-1,")")))+
-  scale_colour_manual(values =c(#"Innoculum"="gray50",
-                              "Cteno-OM"="red",
-                              "Control"="blue"))+
-  facet_wrap(~variable, scales = "free_y")+
-  theme_EF
-
-#save the plot
-ggsave("./Figures/Figure_1-metadata.pdf",
-       plot = metadata.p,
-       units = "mm",
-       width = 90, height = 90, 
-       scale = 2,
-       dpi = 300)
-
-######################################
-# Plot cell abundances, DON, ammonia and phosphate
-######################################
-metadata_S.p <- ML_metadata_mean %>% 
-  filter(!is.na(mean),
-         #Time < 100,
-         variable %in% c("Nitrogen",#"NO3","NO2",
-                         "DOC","DCAA","DFAA")) %>% 
-  ggplot(aes(x = Time, y = mean, group = Treatment, colour = Treatment))+
-  geom_errorbar(aes(ymin= mean-se, ymax= mean+se), width = 0.2)+
-  geom_point(size = 4, colour = "black")+
-  geom_point(size = 3)+
-  geom_line(linetype=2)+
-  scale_y_continuous(n.breaks=4)+
-  labs(x="Time (hours)", 
-       y= expression(paste("Concentration (# ",mL^-1,")")))+
-  scale_colour_manual(values =c(#"Innoculum"="gray50",
-    "Cteno-OM"="red",
-    "Control"="blue"))+
-  facet_wrap(~variable, scales = "free_y")+
-  theme_EF
-
-#save the plot
-ggsave("./Figures/Figure_S1-metadata.pdf",
-       plot = metadata_S.p,
-       units = "mm",
-       width = 90, height = 120, 
-       scale = 2,
-       dpi = 300)
-
-######################################
-# Statistics (work in progress)
-######################################
-ML_metadata_long %>% 
-  filter(!is.na(value),
-         Time < 100,
-         variable == "DOC") %>% 
-  group_by(Treatment) %>% 
-  t_test(value ~ Time, paired = TRUE)
-
-
-
-
-
-
-
-
-
-
-Bac_abund <- ML_metadata_mean %>% 
-              filter(variable =="Abundance") %>% 
-              select(Treatment, Time,mean, se) %>% 
-              mutate(Time = as.numeric(Time),
-                     Method = "Abundance",
-                     Taxa = "T") %>%
-              dplyr::rename("value_mean" = "mean",
-                            "value_se" ="se")
-
-FiSH.mean_new <- FiSH.mean %>%  mutate(Time= as.numeric(Time))
-
-
-
-test <- rbind(FiSH.mean_new,Bac_abund)
-
-
-
-
-
-
-  
-  
-  
-  
