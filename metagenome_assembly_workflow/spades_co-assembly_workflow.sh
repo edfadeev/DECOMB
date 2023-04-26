@@ -11,7 +11,10 @@ conda activate anvio-dev
 DECOMB_git=/scratch/oceanography/efadeev/DECOMB/DECOMB_git
 
 WORKDIR=/scratch/oceanography/efadeev/DECOMB/analysis/metaG_anvio
+# currently at WORKDIR=/home/project/oceanography/DECOMB/analysis
+
 cd $WORKDIR
+
 
 #export sequences from bam files, run QC and trim adapters
 sbatch -a 105352-105354 ../DECOMB/metaG/process_raw_sequences.sh
