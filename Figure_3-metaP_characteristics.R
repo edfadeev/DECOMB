@@ -8,18 +8,25 @@ require(phyloseq)
 require(ggplot2)
 require(ggpubr)
 
+#extra functions
 source("scripts/extra_functions.R")
 
+#########################################################
+#Generate phyloseq object from the proteomics dataset
+#!!! Run only once for Fig3-6 scripts!!!
+#########################################################
+source("scripts/Proteins2phyloseq.R")
+
 #load metaproteome phyloseq object
-metaP_runB_merged<- readRDS("data/metaproteome/metaP_runB_merged.rds")
+metaP_merged<- readRDS("data/metaproteome/metaP_merged.rds")
 
 ###################
 #Plot number of proteins per sample
 ###################
 # number of proteins per sample
-prot_per_sample <- estimate_richness(metaP_runB_merged, split = TRUE, measures = "Observed") %>% 
+prot_per_sample <- estimate_richness(metaP_merged, split = TRUE, measures = "Observed") %>% 
   mutate(Sample_name = row.names(.)) %>% 
-  left_join(sample_data(metaP_runB_merged), by = "Sample_name") %>% 
+  left_join(sample_data(metaP_merged), by = "Sample_name") %>% 
   mutate(Sample= gsub("_.*","", Sample_name))
 
 #plot
@@ -54,13 +61,13 @@ prot_per_sample %>% group_by(Treatment, Type) %>%
 ###################
 #Protein overlaps between fraction
 ###################
-sample_data(metaP_runB_merged)$Sample= gsub("_.*","", sample_data(metaP_runB_merged)$Sample_name)
+sample_data(metaP_merged)$Sample= gsub("_.*","", sample_data(metaP_merged)$Sample_name)
 
 y<- list()
 frac_overlaps<- data.frame()
 
-for (i in unique(sample_data(metaP_runB_merged)$Sample)){
-  sub_group <- subset_samples(metaP_runB_merged, Sample == i) %>% 
+for (i in unique(sample_data(metaP_merged)$Sample)){
+  sub_group <- subset_samples(metaP_merged, Sample == i) %>% 
     prune_taxa(taxa_sums(.)>0,.)
   for (n in c("Cellular","Exocellular")){
     sub_sample <- subset_samples(sub_group, Type == n) %>% 
@@ -108,7 +115,7 @@ overlap.df%>% mutate(Shared_all = case_when(rowSums(.) == 14 ~ 1,TRUE~ 0),
 #Ordination plot
 ###################
 #conduct variance stabiliozation of the metaP dataset
-metaP_obj0.ddsMat <- phyloseq_to_deseq2(metaP_runB_merged, ~Treatment)
+metaP_obj0.ddsMat <- phyloseq_to_deseq2(metaP_merged, ~Treatment)
 metaP.DEseq.vsd <- vst(metaP_obj0.ddsMat,  fitType="local", blind=FALSE)
 
 #plot PCA

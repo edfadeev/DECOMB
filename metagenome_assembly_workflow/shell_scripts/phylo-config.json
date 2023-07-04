@@ -1,0 +1,37 @@
+{
+  "workflow_name": "phylogenomics",
+  "config_version": "2",
+  "anvi_run_hmms": {
+        "run": true,
+        "threads": 5,
+        "--also-scan-trnas": true,
+	"--installed-hmm-profile": "Bacteria_71",
+        "--hmm-profile-dir": ""
+  },
+  "anvi_get_sequences_for_hmm_hits": {
+    "--return-best-hit": true,
+    "--align-with": "muscle",
+    "--concatenate-genes": true,
+    "--get-aa-sequences": true,
+    "--hmm-sources": "Bacteria_71"
+  },
+  "trimal": {
+    "-gt": 0.5
+  },
+  "iqtree": {
+    "threads": 10,
+    "-m": "WAG",
+    "-bb": 1000,
+    "additional_params": ""
+  },
+  "project_name": "Pseudoalteromonas_phylogenomics",
+  "internal_genomes": "",
+  "external_genomes": "external-genomes-phylo.txt",
+  "fasta_txt": "08_BIN_PAN/Pseudoalt_fasta.txt",
+  "output_dirs": {
+    "PHYLO_DIR": "08_BIN_PAN/PHYLOGENOMICS",
+    "CONTIGS_DIR": "08_BIN_PAN/Pseudoalt_genomes",
+    "FASTA_DIR": "08_BIN_PAN/Pseudoalt_genomes",
+    "LOGS_DIR": "08_BIN_PAN/Log"
+  }
+}

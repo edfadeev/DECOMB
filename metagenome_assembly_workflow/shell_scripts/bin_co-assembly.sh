@@ -4,18 +4,21 @@
 #SBATCH --cpus-per-task=40
 #SBATCH --mem=100GB
 #SBATCH --mail-user=dr.eduard.fadeev@gmail.com
-#SBATCH --output=/scratch/oceanography/efadeev/DECOMB/analysis/metaG_anvio/Log/%x-%j.out
-#SBATCH --error=/scratch/oceanography/efadeev/DECOMB/analysis/metaG_anvio/Log/%x-%j.err
+#SBATCH --output=/home/project/oceanography/DECOMB/metaG_anvio/Log/%x-%j.out
+#SBATCH --error=/home/project/oceanography/DECOMB/metaG_anvio/Log/%x-%j.err
 
 #load module
+module load conda
+conda activate anvio_7.1
+
 module unload python3/3.9.0
-module load python3/3.7.0
+module load python3/3.7.15
 
 module load metabat/2.15
 module load concoct/1.1.0-py37
 
 #Set up the path to the working directory
-WORKDIR=/scratch/oceanography/efadeev/DECOMB/analysis/metaG_anvio
+WORKDIR=/home/project/oceanography/DECOMB/metaG_anvio
 cd $WORKDIR
 
 #binning with concoct

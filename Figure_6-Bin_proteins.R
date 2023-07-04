@@ -4,7 +4,14 @@ require(DESeq2)
 require(dplyr)
 require(ggplot2)
 
+#extra functions
 source("scripts/extra_functions.R")
+
+#########################################################
+#Generate phyloseq object from the proteomics dataset
+#!!! Run only once for Fig3-6 scripts!!!
+#########################################################
+source("scripts/Proteins2phyloseq.R")
 
 #########################################################
 #Explore all proteins in binned genes                 ###
@@ -12,7 +19,7 @@ source("scripts/extra_functions.R")
 #load metaproteome phyloseq object
 #conduct NSAF transformation
 #subset to the genes which were observed also in proteins
-metaP_in_bins<- readRDS("data/metaproteome/metaP_runB_merged.rds") %>% 
+metaP_in_bins<- readRDS("data/metaproteome/metaP_merged.rds") %>% 
                 add_nsaf(., "prot_length") %>% 
                 subset_taxa(., !is.na(Bin)) %>% 
                 prune_taxa(taxa_sums(.)>0, .)
@@ -71,7 +78,7 @@ Prot_abund_per_bin <- prot_nsaf.Bin.agg %>%
 
 #how many proteins there are from each bin?
 #sum all proteins per sample
-metaP_totals<- readRDS("data/metaproteome/metaP_runB_merged.rds") %>% 
+metaP_totals<- readRDS("data/metaproteome/metaP_merged.rds") %>% 
   add_nsaf(., "prot_length") %>% 
   psmelt() %>% 
   mutate(Type = factor(Type, levels =c("Cellular","Exocellular"))) %>% 

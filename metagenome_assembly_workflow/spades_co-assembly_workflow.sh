@@ -15,7 +15,6 @@ WORKDIR=/scratch/oceanography/efadeev/DECOMB/analysis/metaG_anvio
 
 cd $WORKDIR
 
-
 #export sequences from bam files, run QC and trim adapters
 sbatch -a 105352-105354 ../DECOMB/metaG/process_raw_sequences.sh
 
@@ -52,16 +51,6 @@ anvi-export-functions -c $WORKDIR/05_ANVIO/spades.db --annotation-sources $db -o
 sed -i -e 's/ /_/g' $WORKDIR/05_ANVIO/spades-$db-functions.txt 
 
 done
-
-#merge all databases into a single
-
-
-#> $WORKDIR/05_ANVIO/spades-$db-functions-corrected.txt
-#sort the table
-#sed -n '2,$p' $WORKDIR/05_ANVIO/spades-$db-functions.txt | sort -n -k 1 > $WORKDIR/05_ANVIO/spades-$db-functions-sorted.txt
-
-#probably not needed anymore
-#sed -n '2,$p' $WORKDIR/05_ANVIO/spades-gene-calls.txt | sort -n -k 1 > $WORKDIR/05_ANVIO/spades-gene-calls-sorted.txt
 
 ################################
 #Produce automatic bins
@@ -299,53 +288,3 @@ anvi-run-workflow -w pangenomics \
 #inspect the pangenome
 anvi-display-pan -g $WORKDIR/03_PAN/P_phenolica_pangenome-GENOMES.db \
 -p $WORKDIR/03_PAN/P_phenolica_pangenome-PAN.db --server-only -P 5678
-
-
-
-
-
-
-
-
-
-echo -e "Genome\tpath" > $WORKDIR/08_BIN_PAN/selected-genomes.txt
-for file in $WORKDIR/08_BIN_PAN/genomes/*.fna; do 
-grep -m 1 ">" $file | sed -e "/complete*//" -  >> $WORKDIR/08_BIN_PAN/selected-genomes.txt
-done
-
-
-
-
-#############################################################################
-# draft
-#############################################################################
-#produce table of the different groups of bins
-JELLY_BINS=("Bin_2_1" "Bin_2_2" "Bin_134_1" "Bin_134_2" "Bin_5_2" "Bin_5_3" "Bin_84_1" "Bin_76_1" "Bin_38_1" "Bin_102_1") 
-
-CONTROL_BINS=("Bin_179_1" "Bin_115_2" "Bin_115_1" "Bin_12_1")
-
-echo -e "sample\tgroup" > $WORKDIR/07_METABOLISM/bin-groups.txt
-for bin in ${JELLY_BINS[@]}; do 
-echo -e "${bin}\tJelly" >> $WORKDIR/07_METABOLISM/bin-groups.txt
-done
-
-for bin in ${CONTROL_BINS[@]}; do 
-echo -e "${bin}\tControl" >> $WORKDIR/07_METABOLISM/bin-groups.txt
-done
-
-#load R version 4.0.2
-module unload R
-module load R/4.0.2
-
-#calculate enriched metabolism
-anvi-compute-functional-enrichment -M $WORKDIR/07_METABOLISM/Bins_modules.txt \
-                                   -G $WORKDIR/07_METABOLISM/bin-groups.txt \
-                                   -o $WORKDIR/07_METABOLISM/Bin_enriched_modules.txt
-
-
-
-
-
-
-
-

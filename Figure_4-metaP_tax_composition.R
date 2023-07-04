@@ -8,10 +8,17 @@ require(phyloseq)
 require(ggplot2)
 require(ggpubr)
 
+#extra functions
 source("scripts/extra_functions.R")
 
+#########################################################
+#Generate phyloseq object from the proteomics dataset
+#!!! Run only once for Fig3-6 scripts!!!
+#########################################################
+source("scripts/Proteins2phyloseq.R")
+
 #load metaproteome phyloseq object
-metaP_merged<- readRDS("data/metaproteome/metaP_runB_merged.rds")
+metaP_merged<- readRDS("data/metaproteome/metaP_merged.rds")
 
 ###################
 #Taxonomic compositions

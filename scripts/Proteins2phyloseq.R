@@ -123,11 +123,8 @@ metaP_obj0<- phyloseq(metaP_prot_counts, protein_annotation, meta_df)
 #remove proteins that were not observed 
 metaP_obj0<- prune_taxa(taxa_sums(metaP_obj0)>0,metaP_obj0)
 
-#save metaproteome phyloseq
-saveRDS(metaP_obj0, "data/metaproteome/metaP_ps_raw.rds")
-
 ########################################
-#export only second run 
+#export only second run (first run does not include all samples)
 ########################################
 metaP_runB <- subset_samples(metaP_obj0, Run =="B") %>% 
   prune_taxa(taxa_sums(.)>0,.)
@@ -138,9 +135,6 @@ data_runB <- as(sample_data(metaP_runB),"data.frame") %>%
           Group = paste(Treatment,Replicate, Fraction, sep ="_"))
 
 sample_data(metaP_runB) <- sample_data(data_runB)
-
-#save the new phyloseq
-saveRDS(metaP_runB, "data/metaproteome/metaP_ps_runB.rds")
 
 ########################################
 #merge exocellular fraction of run B
@@ -165,7 +159,7 @@ meta_merge <- as(sample_data(metaP_runB), "data.frame") %>%
 sample_data(metaP_runB_frac)<- meta_merge
 
 #save the new phyloseq
-saveRDS(metaP_runB_frac, "data/metaproteome/metaP_runB_merged.rds")
+saveRDS(metaP_runB_frac, "data/metaproteome/metaP_merged.rds")
 
 #print session info and clean the workspace
 sessionInfo()
