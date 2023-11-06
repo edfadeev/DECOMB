@@ -83,17 +83,16 @@ DESeq_res<- read.csv("data/DESEq_res.csv")
 
 DESeq_res_Cteno_cell <- DESeq_res %>% 
                   filter(Fraction =="Cellular",
-                         log2FoldChange >15) %>% 
-                  select(c("InterPro_function","KeggGhostKoala_function",
-                         "KeggGhostKoala_accession","KOfam_accession","KOfam_function","Family", "log2FoldChange"))
+                         #log2FoldChange >15
+                         ) %>% 
+                  select(c("COG20_CATEGORY_function", "InterPro_function", "KOfam_accession","KOfam_function","Family", "log2FoldChange"))
 
 
 DESeq_res_Cteno_Exo <- DESeq_res %>% 
   filter(Fraction =="Exocellular",
          #log2FoldChange >15
          ) %>% 
-  select(c("InterPro_function","KeggGhostKoala_function",
-           "KeggGhostKoala_accession","KOfam_accession","KOfam_function","Family", "log2FoldChange"))
+  select(c("COG20_CATEGORY_function","InterPro_function","KOfam_accession","KOfam_function","Family", "log2FoldChange"))
 
 ###################
 #summarize the significantly enr. proteins by Taxonomic orders
@@ -155,16 +154,16 @@ DESeq_res_top_Pseudoalt <- DESeq_res_top_fam %>%
 
 #identify the faunction categories with most of the proteins
 DESeq_res_top_Pseudoalt_total_COG20_category<- DESeq_res_top_Pseudoalt%>% 
-  select(gene_callers_id, Type, COG20_CATEGORY_function, COG20_CATEGORY_accession) %>% 
+  select(Genus, gene_callers_id, Type, COG20_CATEGORY_function, COG20_CATEGORY_accession) %>% 
   unique() %>% 
-  group_by(Type, COG20_CATEGORY_function, COG20_CATEGORY_accession) %>% 
+  group_by(Genus, Type, COG20_CATEGORY_function, COG20_CATEGORY_accession) %>% 
   summarize(n_prot = n())
 
 #identify the COGs within each category
 DESeq_res_top_Pseudoalt_total_COG20_function <- DESeq_res_top_Pseudoalt%>% 
-  select(gene_callers_id, Fraction, Type, COG20_CATEGORY_accession, COG20_CATEGORY_function, COG20_FUNCTION_function, COG20_FUNCTION_accession,log2FoldChange) %>% 
+  select(Genus, gene_callers_id, Fraction, Type, COG20_CATEGORY_accession, COG20_CATEGORY_function, COG20_FUNCTION_function, COG20_FUNCTION_accession,log2FoldChange) %>% 
   unique() %>% 
-  group_by(Type,Fraction, COG20_CATEGORY_accession, COG20_CATEGORY_function, COG20_FUNCTION_function, COG20_FUNCTION_accession) %>% 
+  group_by(Genus, Type,Fraction, COG20_CATEGORY_accession, COG20_CATEGORY_function, COG20_FUNCTION_function, COG20_FUNCTION_accession) %>% 
   summarize(log2_mean = mean(log2FoldChange), log2_se = se(log2FoldChange), n_prot= length(log2FoldChange)) 
 
 
@@ -173,15 +172,15 @@ DESeq_res_top_Alteromonas <- DESeq_res_top_fam %>%
   filter(Genus == "Alteromonas")
 
 DESeq_res_top_Alteromonas_total_COG20_category<- DESeq_res_top_Alteromonas%>% 
-  select(gene_callers_id, Type, COG20_CATEGORY_function, COG20_CATEGORY_accession) %>% 
+  select(Genus, gene_callers_id, Type, COG20_CATEGORY_function, COG20_CATEGORY_accession) %>% 
   unique() %>% 
-  group_by(Type, COG20_CATEGORY_function, COG20_CATEGORY_accession) %>% 
+  group_by(Genus, Type, COG20_CATEGORY_function, COG20_CATEGORY_accession) %>% 
   summarize(n_prot = n())
 
 DESeq_res_top_Alteromonas_total_COG20_function <- DESeq_res_top_Alteromonas%>% 
-  select(gene_callers_id, Fraction, Type, COG20_CATEGORY_accession, COG20_CATEGORY_function, COG20_FUNCTION_function, COG20_FUNCTION_accession,log2FoldChange) %>% 
+  select(Genus, gene_callers_id, Fraction, Type, COG20_CATEGORY_accession, COG20_CATEGORY_function, COG20_FUNCTION_function, COG20_FUNCTION_accession,log2FoldChange) %>% 
   unique() %>% 
-  group_by(Type, Fraction, COG20_CATEGORY_accession, COG20_CATEGORY_function, COG20_FUNCTION_function, COG20_FUNCTION_accession) %>% 
+  group_by(Genus, Type, Fraction, COG20_CATEGORY_accession, COG20_CATEGORY_function, COG20_FUNCTION_function, COG20_FUNCTION_accession) %>% 
   summarize(log2_mean = mean(log2FoldChange), log2_se = se(log2FoldChange), n_prot= length(log2FoldChange)) 
 
 
@@ -191,32 +190,58 @@ DESeq_res_top_Vibrio <- DESeq_res_top_fam %>%
 
 
 DESeq_res_top_Vibrio_total_COG20_category<- DESeq_res_top_Vibrio%>% 
-  select(gene_callers_id, Type,  COG20_CATEGORY_function, COG20_CATEGORY_accession) %>% 
+  select(Genus, gene_callers_id, Type,  COG20_CATEGORY_function, COG20_CATEGORY_accession) %>% 
   unique() %>% 
-  group_by(Type, COG20_CATEGORY_function, COG20_CATEGORY_accession) %>% 
+  group_by(Genus, Type, COG20_CATEGORY_function, COG20_CATEGORY_accession) %>% 
   summarize(n_prot = n())
 
 DESeq_res_top_Vibrio_total_COG20_function <- DESeq_res_top_Vibrio%>% 
-  select(gene_callers_id, Type,  COG20_CATEGORY_accession,COG20_FUNCTION_function, COG20_FUNCTION_accession,log2FoldChange) %>% 
+  select(Genus, gene_callers_id, Type,  COG20_CATEGORY_accession,COG20_FUNCTION_function, COG20_FUNCTION_accession,log2FoldChange) %>% 
   unique() %>% 
-  group_by(Type, COG20_CATEGORY_accession,COG20_CATEGORY_function, COG20_FUNCTION_function, COG20_FUNCTION_accession) %>% 
+  group_by(Genus, Type, COG20_CATEGORY_accession,COG20_CATEGORY_function, COG20_FUNCTION_function, COG20_FUNCTION_accession) %>% 
   summarize(log2_mean = mean(log2FoldChange), log2_se = se(log2FoldChange), n_prot= length(log2FoldChange)) 
 
+#generate summary table
+DESeq_res_top_COG_summary<- DESeq_res_top_Pseudoalt_total_COG20_category %>% 
+                              rbind(DESeq_res_top_Alteromonas_total_COG20_category) %>% 
+                              rbind(DESeq_res_top_Vibrio_total_COG20_category) %>% 
+                              ungroup() %>% 
+                              mutate_if(is.character,as.factor) %>% 
+                              tidyr::complete(nesting(Genus,Type), nesting(COG20_CATEGORY_accession,COG20_CATEGORY_function), fill = list(n_prot = 0)) %>% 
+                              mutate(COG20_CATEGORY_accession = factor(COG20_CATEGORY_accession, levels = c(LETTERS, "Unk")),
+                                     Type = factor(Type, levels = c("Cteno-OM","Control")))
+#plot
+DESeq_res_top_COG_summary %>% 
+  ggplot(aes(x=COG20_CATEGORY_accession, y= n_prot, fill = Genus))+
+  geom_bar(stat = "identity", position = "dodge")+
+  scale_fill_manual(values=c("#771155", "#4477AA", "#00ffff"))+
+  labs(x= "COG category accession", y= "Number of sig. enriched proteins")+
+  facet_grid(Type~.)+
+  theme_EF
+
+
+#save the plot
+ggsave("./Figures/Figure_6-Enriched_prot_by_taxa.png", 
+       plot = last_plot(),
+       units = "mm",
+       width = 120, height = 90, 
+       scale = 3,
+       dpi = 300)
 
 #Pelagibacter
 DESeq_res_top_Pelagi <- DESeq_res_top_fam %>% 
   filter(Family == "Pelagibacteraceae")
 
 DESeq_res_top_Pelagi_total_COG20_function <- DESeq_res_top_Pelagi%>% 
-  select(gene_callers_id, Type, Genus, COG20_FUNCTION_function, COG20_FUNCTION_accession,log2FoldChange) %>% 
+  select(Genus, gene_callers_id, Type, Genus, COG20_FUNCTION_function, COG20_FUNCTION_accession,log2FoldChange) %>% 
   unique() %>% 
-  group_by(Type, Genus,  COG20_CATEGORY_function, COG20_FUNCTION_function, COG20_FUNCTION_accession) %>% 
+  group_by(Genus, Type, Genus,  COG20_CATEGORY_function, COG20_FUNCTION_function, COG20_FUNCTION_accession) %>% 
   summarize(log2_mean = mean(log2FoldChange), log2_se = se(log2FoldChange), n_prot= length(log2FoldChange)) 
 
 DESeq_res_top_Pelagi_total_COG20_category<- DESeq_res_top_Pelagi%>% 
-  select(gene_callers_id, Type, Genus, COG20_CATEGORY_function, COG20_CATEGORY_accession) %>% 
+  select(Genus, gene_callers_id, Type, Genus, COG20_CATEGORY_function, COG20_CATEGORY_accession) %>% 
   unique() %>% 
-  group_by(Type, Genus,  COG20_CATEGORY_function, COG20_CATEGORY_accession) %>% 
+  group_by(Genus, Type, Genus,  COG20_CATEGORY_function, COG20_CATEGORY_accession) %>% 
   summarize(n_prot = n())
 
 
