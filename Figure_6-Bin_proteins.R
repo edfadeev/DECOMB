@@ -68,10 +68,10 @@ ggsave("./Figures/Figure_7-Proteins_by_bin.pdf",
        dpi = 300)
 
 #abundance
-Prot_abund_per_bin <- prot_nsaf.Bin.agg %>% 
+Prot_abund_per_bin <- metaP_in_bins.long %>% 
   mutate(Type = factor(Type, levels =c("Cellular","Exocellular"))) %>% 
   group_by(Type, Treatment, Sample_name, Bin) %>% 
-  summarize(Total_prot = sum(Tot.abundance)) %>% 
+  summarize(Total_prot = sum(Abundance)) %>% 
   group_by(Type, Treatment, Bin) %>% 
   summarize(Min_abund = min(Total_prot),
             Max_abund = max(Total_prot)) 
@@ -189,14 +189,14 @@ pathways<- c("00010", #Glycolysis / Gluconeogenesis
              "04974",  #Protein digestion and absorption
              "00910",  #Nitrogen metabolism
              "00920",  #Sulfur metabolism
-             "00071", #Fatty acid degradation
+             "00071" #Fatty acid degradation
 )
 
 
 #plot in a loop all the pathways of interest for each bin
 pathview(gene.data = DESeq_res_bin_84_KO_list, 
          #pathway.id =pathways,
-         pathway.id = "01212",
+         pathway.id = "00190",
          species = "ko", 
          keys.align = "y", 
          kegg.native = T,
