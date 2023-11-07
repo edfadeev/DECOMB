@@ -137,7 +137,7 @@ ML_metadata %>%
   #group_by(Treatment, Bottle) %>% 
   mutate(d.DOC = DOC[Time==t.start]-DOC[Time==t.end], # carbon drawdown
          d.Abund = Abundance[Time == t.end]-Abundance[Time == t.start], 
-         BCD = d.DOC/(t.end-t.start), # bacterial carbon demand (umol C L-1 h-1)
+         BCD = 12*d.DOC/(t.end-t.start), # bacterial carbon demand (umol C L-1 h-1)
          BP.gr=d.Abund*1000*20*(1E-9)/((t.end-t.start)), # Bacterial production (ugr C L-1 h-1), 20fg C per cell
          BP=BP.gr/12, # Bacterial production (umol C L-1 h-1), 20fg C per cell
          BGE = BP/BCD) %>%
